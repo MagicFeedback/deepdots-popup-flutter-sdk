@@ -1,0 +1,4 @@
+#include "Generated.xcconfig"
+
+// El SDK nativo de Deepdots (KMP) no trae slice x86_64 de simulador (iosX64 retirado).
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64
