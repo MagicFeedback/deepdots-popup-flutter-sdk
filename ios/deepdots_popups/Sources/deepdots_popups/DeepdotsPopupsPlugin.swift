@@ -47,6 +47,52 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
       return result(sdk.getUserId())
     case "getSessionId":
       return result(sdk.getSessionId())
+    // ───────── Analytics ─────────
+    case "setUserAttributes":
+      sdk.setUserAttributes(attributes: kotlinMap(args["attributes"]) ?? [:])
+    case "setContactAttributes":
+      return setContactAttributes(sdk, args, result)
+    case "setMetric":
+      sdk.setMetric(key: args["key"] as! String, value: kotlinValue(args["value"]))
+    case "reportError":
+      reportError(sdk, args)
+    case "endSession":
+      sdk.endSession()
+    case "flushAnalytics":
+      // Kotlin no exporta el valor por defecto: este es el `AnalyticsFlushMeta()` de nativo.
+      sdk.flushAnalytics(meta: AnalyticsFlushMeta(final: false, sessionEnd: false))
+    case "trackSearch":
+      sdk.trackSearch(
+        query: args["query"] as! String,
+        resultsCount: (args["resultsCount"] as! NSNumber).int32Value,
+        params: kotlinMap(args["params"])
+      )
+    case "trackFindabilityFriction":
+      sdk.trackFindabilityFriction(frictionTopic: args["frictionTopic"] as! String, params: kotlinMap(args["params"]))
+    case "trackFunnelStep":
+      sdk.trackFunnelStep(
+        funnel: args["funnel"] as! String,
+        step: args["step"] as! String,
+        taskId: args["taskId"] as! String,
+        params: kotlinMap(args["params"])
+      )
+    case "trackMeaningfulInteraction":
+      sdk.trackMeaningfulInteraction(interactionType: args["interactionType"] as! String, params: kotlinMap(args["params"]))
+    case "trackMessage":
+      sdk.trackMessage(
+        stage: args["stage"] as! String,
+        id: args["id"] as! String,
+        title: args["title"] as! String,
+        channel: args["channel"] as! String,
+        campaign: args["campaign"] as? String,
+        value: (args["value"] as? NSNumber).map { KotlinDouble(value: $0.doubleValue) },
+        currency: args["currency"] as? String,
+        params: kotlinMap(args["params"])
+      )
+    case "enterMiniService":
+      sdk.enterMiniService(name: args["name"] as! String, entryPointType: args["entryPointType"] as? String)
+    case "exitMiniService":
+      sdk.exitMiniService(name: args["name"] as! String)
     default:
       return result(FlutterMethodNotImplemented)
     }
@@ -74,8 +120,8 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
       storage: nil,
       trackingEnabled: KotlinBoolean(bool: args["trackingEnabled"] as? Bool ?? true),
       analytics: analytics,
-      geolocation: nil,
-      contactAttributes: nil,
+      geolocation: KotlinBoolean(bool: args["geolocation"] as? Bool ?? true),
+      contactAttributes: kotlinMap(args["contactAttributes"]),
       renderChrome: nil,
       showProgressBar: nil,
       metadata: metadata
@@ -87,6 +133,66 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
     }
     sdk = instance
     attachTopViewController()
+  }
+
+  // ───────── Analytics ─────────
+
+  /// `setContactAttributes` es `suspend` en Kotlin: en Swift llega con completion handler, que
+  /// puede volver en cualquier hilo; el `FlutterResult` se completa en el principal.
+  private func setContactAttributes(_ sdk: DeepdotsSDK.DeepdotsPopups, _ args: [String: Any], _ result: @escaping FlutterResult) {
+    sdk.setContactAttributes(attributes: kotlinMap(args["attributes"]) ?? [:]) { sent, error in
+      DispatchQueue.main.async {
+        if let error = error {
+          result(FlutterError(code: "set_contact_attributes_failed", message: error.localizedDescription, details: nil))
+        } else {
+          result(sent?.boolValue ?? false)
+        }
+      }
+    }
+  }
+
+  /// `reportError` pide un `Throwable` de Kotlin. Desde Swift no se puede fijar su pila (Kotlin
+  /// la captura al construirlo y `stackTraceToString()` no se puede sobrescribir), así que la de
+  /// Dart viaja en `context` como `dart_stack`, junto al tipo (`dart_error_type`). El
+  /// `crash_type` nativo será el de la clase (`Throwable`) y el `stack`, el del puente.
+  private func reportError(_ sdk: DeepdotsSDK.DeepdotsPopups, _ args: [String: Any]) {
+    var context = kotlinMap(args["context"]) ?? [:]
+    context["dart_error_type"] = args["errorType"] as? String
+    if let stack = args["stack"] as? String { context["dart_stack"] = stack }
+    sdk.reportError(
+      error: KotlinThrowable(message: args["message"] as? String ?? ""),
+      severity: args["severity"] as? String ?? "error",
+      handled: args["handled"] as? Bool ?? true,
+      context: context
+    )
+  }
+
+  /// Un `NSNumber` del canal no llega a Kotlin como `Boolean`/`Long`/`Double`, así que el SDK lo
+  /// trataría como texto (`true` acabaría como "1"). Se convierte a las cajas de Kotlin, para
+  /// que el resultado sea el mismo que en Android. `NSNull` (un `null` de Dart) pasa a `nil`
+  /// en un valor suelto; dentro de un mapa o una lista se queda como `NSNull`, que Kotlin/Native
+  /// lee como `null` en las colecciones.
+  private func kotlinValue(_ value: Any?) -> Any? {
+    switch value {
+    case nil, is NSNull:
+      return nil
+    case let number as NSNumber:
+      if CFGetTypeID(number as CFTypeRef) == CFBooleanGetTypeID() { return KotlinBoolean(bool: number.boolValue) }
+      if CFNumberIsFloatType(number as CFNumber) { return KotlinDouble(value: number.doubleValue) }
+      return KotlinLong(value: number.int64Value)
+    case let map as [String: Any]:
+      return kotlinMap(map)
+    case let list as [Any]:
+      return list.map { kotlinValue($0) ?? NSNull() }
+    default:
+      return value
+    }
+  }
+
+  /// Mapa del canal con los valores convertidos por [kotlinValue].
+  private func kotlinMap(_ value: Any?) -> [String: Any]? {
+    guard let map = value as? [String: Any] else { return nil }
+    return map.mapValues { kotlinValue($0) ?? NSNull() }
   }
 
   private func emit(_ event: Event, _ data: EventData) {
