@@ -27,6 +27,31 @@ DeepdotsPopups.events.listen((e) => print(e)); // popup_shown, popup_clicked, su
 El ciclo de vida (`onForeground`/`onBackground`) se conecta solo con `AppLifecycleListener`,
 usando `hide`/`show` y no `inactive`, porque en el SDK nativo `onBackground()` cierra la sesión.
 
+Control manual, idioma y opciones de `init`:
+
+```dart
+DeepdotsPopups.init(
+  publicKey: '…',
+  userId: 'user-123',
+  renderChrome: false,            // sin scrim ni tarjeta: el host pone el marco
+  showProgressBar: true,          // null = lo que diga el survey en la plataforma
+  metadata: {'plan': 'pro'},      // nulos fuera; `userId` gana sobre metadata['userId']
+);
+DeepdotsPopups.show('survey-id', 'product-id', {'source': 'banner'}); // sin triggers ni segmentación
+DeepdotsPopups.showByPopupId('popup-id');
+DeepdotsPopups.triggerSurvey('survey-id');  // respeta segmentación y cooldown
+DeepdotsPopups.triggerClick('buy-button');
+DeepdotsPopups.close();
+DeepdotsPopups.setLanguage('es');           // textos del chrome del siguiente popup
+```
+
+`show`, `showByPopupId`, `triggerSurvey` y `close` fallan con `PlatformException(no_context)` si
+aún no hay Activity (Android) o root view controller (iOS). `DeepdotsEvent` trae además `extra`
+(p. ej. `action` en `popup_clicked`, o el `data` de `show` en `popup_shown`) y `timestamp`.
+`setLanguage` no cambia el idioma del contexto de analytics: el SDK nativo lo resuelve una vez en
+`init()`. En iOS, `close()` cierra lo que esté presentado sobre el root view controller, sea o no
+el popup (así lo implementa el SDK nativo).
+
 Requisitos del host:
 
 - **Android:** `MainActivity` tiene que extender `FlutterFragmentActivity`. El popup es Compose
