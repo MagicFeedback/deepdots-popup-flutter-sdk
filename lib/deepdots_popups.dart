@@ -19,12 +19,21 @@ class DeepdotsEvent {
     required this.popupId,
     required this.surveyId,
     required this.productId,
+    this.extra = const {},
+    this.timestamp,
   });
 
   final String type;
   final String popupId;
   final String surveyId;
   final String productId;
+
+  /// Datos extra del evento nativo (`EventData.extra`), p. ej. `action` en `popup_clicked` o
+  /// el `data` de [DeepdotsPopups.show] en `popup_shown`. Vacío si el evento no trae nada.
+  final Map<String, Object?> extra;
+
+  /// Momento en que el SDK nativo emitió el evento (`EventData.timestamp`).
+  final DateTime? timestamp;
 
   @override
   String toString() => 'DeepdotsEvent($type, popup=$popupId, survey=$surveyId)';
@@ -44,9 +53,18 @@ class DeepdotsPopups {
 
   /// Inicializa el SDK nativo. Idempotente: una segunda llamada no hace nada.
   ///
-  /// [contactAttributes]: atributos del Contact enviados al arrancar (requiere [userId]); ver
-  /// [setContactAttributes]. [geolocation]: país/ciudad por IP en analytics (`false` no llama
-  /// nunca a los servicios de geolocalización).
+  /// - [language]: idioma inicial; se cambia después con [setLanguage].
+  /// - [renderChrome]: con `false` el popup se pinta sin scrim ni tarjeta (el host pone el
+  ///   marco). `null` = valor por defecto del SDK (`true`).
+  /// - [showProgressBar]: fuerza la barra de progreso; `null` respeta la configuración del
+  ///   survey en la plataforma.
+  /// - [metadata]: metadata libre que el SDK reenvía al backend con cada respuesta de survey.
+  ///   Las entradas con valor `null` se descartan y, si se pasa [userId], este gana sobre una
+  ///   clave `userId` de [metadata].
+  /// - [contactAttributes]: atributos del Contact enviados al arrancar (requiere [userId]); ver
+  ///   [setContactAttributes].
+  /// - [geolocation]: país/ciudad por IP en analytics (`false` no llama nunca a los servicios
+  ///   de geolocalización).
   static Future<void> init({
     required String publicKey,
     DeepdotsEnvironment environment = DeepdotsEnvironment.production,
@@ -58,6 +76,9 @@ class DeepdotsPopups {
     String? analyticsIntegration,
     Map<String, Object?>? contactAttributes,
     bool geolocation = true,
+    bool? renderChrome,
+    bool? showProgressBar,
+    Map<String, Object?>? metadata,
   }) async {
     _channel.setMethodCallHandler(_onNativeCall);
     await _channel.invokeMethod<void>('init', {
@@ -71,6 +92,9 @@ class DeepdotsPopups {
       'analyticsIntegration': analyticsIntegration,
       'contactAttributes': contactAttributes,
       'geolocation': geolocation,
+      'renderChrome': renderChrome,
+      'showProgressBar': showProgressBar,
+      'metadata': metadata,
     });
     // Ciclo de vida automático. `hide`/`show` (no `pause`/`resume`) porque en el SDK nativo
     // `onBackground()` es FIN DE SESIÓN: `inactive` es transitorio (llamada entrante, app
@@ -221,6 +245,45 @@ class DeepdotsPopups {
   /// si ese mini-service no está activo. Nativo: `exitMiniService(name)`.
   static Future<void> exitMiniService(String name) => _channel.invokeMethod('exitMiniService', {'name': name});
 
+  // Control manual de popups. Los que pintan algo (`show`, `showByPopupId`, `triggerSurvey`,
+  // `close`) necesitan la Activity (Android) o el root view controller (iOS) y fallan con
+  // `PlatformException(no_context)` si todavía no hay.
+
+  /// Muestra el popup del survey [surveyId] saltándose triggers y segmentación. [data] llega
+  /// como `extra` del evento `popup_shown`. El SDK nativo busca el popup solo por [surveyId];
+  /// [productId] se pasa tal cual pero hoy no se usa.
+  static Future<void> show(String surveyId, String productId, [Map<String, Object?>? data]) =>
+      _channel.invokeMethod('show', {'surveyId': surveyId, 'productId': productId, 'data': data});
+
+  /// Muestra el popup con ese id, sin evaluar triggers ni segmentación.
+  static Future<void> showByPopupId(String popupId) =>
+      _channel.invokeMethod('showByPopupId', {'popupId': popupId});
+
+  /// Muestra el popup del survey [surveyId] (o [popupId], si hay varios) solo si pasa la
+  /// segmentación y el cooldown, como si hubiese saltado su trigger.
+  static Future<void> triggerSurvey(String surveyId, [String? popupId]) =>
+      _channel.invokeMethod('triggerSurvey', {'surveyId': surveyId, 'popupId': popupId});
+
+  /// Cierra el popup abierto.
+  static Future<void> close() => _channel.invokeMethod('close');
+
+  /// Marca el survey como respondido. Normalmente no hace falta: el SDK lo hace solo al
+  /// completar el survey.
+  static Future<void> markSurveyAnswered(String surveyId) =>
+      _channel.invokeMethod('markSurveyAnswered', {'surveyId': surveyId});
+
+  /// Dispara los popups con trigger de tipo `click` y ese [targetId].
+  static Future<void> triggerClick(String targetId) =>
+      _channel.invokeMethod('triggerClick', {'targetId': targetId});
+
+  /// Cambia el idioma que el SDK nativo lee de `provideLang`: textos del chrome del popup
+  /// (botones, progreso) mientras el survey no trae idioma propio. Aplica al siguiente popup
+  /// que se pinte; con `null` el chrome cae a inglés. Se puede llamar antes de [init]; un
+  /// `language` no nulo en [init] lo sustituye.
+  /// Ojo: el idioma del contexto de analytics se resuelve una vez en `init()` y no cambia.
+  static Future<void> setLanguage(String? language) =>
+      _channel.invokeMethod('setLanguage', {'language': language});
+
   static Future<void> _onNativeCall(MethodCall call) async {
     if (call.method != 'onEvent') return;
     final args = Map<String, Object?>.from(call.arguments as Map);
@@ -229,6 +292,11 @@ class DeepdotsPopups {
       popupId: args['popupId'] as String? ?? '',
       surveyId: args['surveyId'] as String? ?? '',
       productId: args['productId'] as String? ?? '',
+      extra: Map<String, Object?>.from(args['extra'] as Map? ?? const {}),
+      timestamp: switch (args['timestamp']) {
+        final int ms => DateTime.fromMillisecondsSinceEpoch(ms),
+        _ => null,
+      },
     ));
   }
 }
