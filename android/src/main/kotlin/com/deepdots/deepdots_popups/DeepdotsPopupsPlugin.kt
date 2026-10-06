@@ -3,8 +3,6 @@ package com.deepdots.deepdots_popups
 import android.app.Activity
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
-import androidx.activity.ComponentActivity
 import com.deepdots.sdk.DeepdotsPopups
 import com.deepdots.sdk.analytics.AnalyticsKeys
 import com.deepdots.sdk.models.Environment
@@ -258,13 +256,9 @@ class DeepdotsPopupsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun attachActivity() {
+        // Vale cualquier Activity, también la FlutterActivity por defecto: el SDK nativo pone sus
+        // propios owners de Compose cuando la Activity no los trae.
         val activity = activity ?: return
-        if (activity !is ComponentActivity) {
-            // El renderer de KMP monta un ComposeView y necesita ComponentActivity; con la
-            // FlutterActivity por defecto el popup no se pinta y el SDK no avisa.
-            Log.w(TAG, "${activity.javaClass.simpleName} is not a ComponentActivity: popups will not render. " +
-                "Make MainActivity extend io.flutter.embedding.android.FlutterFragmentActivity.")
-        }
         sdk?.attachContext(PlatformContext(activity))
     }
 
@@ -285,6 +279,5 @@ class DeepdotsPopupsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private companion object {
         const val CHANNEL = "com.deepdots/popups"
-        const val TAG = "DeepdotsPopups"
     }
 }
