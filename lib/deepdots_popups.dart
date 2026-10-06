@@ -91,6 +91,29 @@ class DeepdotsPopups {
   /// Dispara los popups con trigger de tipo `event` y ese nombre.
   static Future<void> triggerEvent(String name) => _channel.invokeMethod('triggerEvent', {'name': name});
 
+  // --- Triggers de scroll y de salida ---
+
+  /// Porcentaje de scroll (0-100) de la pantalla actual. Alimenta los popups con trigger de tipo
+  /// `scroll`, que saltan al llegar a su umbral (una vez por pantalla: `setPath` lo rearma).
+  /// [DeepdotsScrollListener] lo llama solo; a mano solo hace falta con scroll propio.
+  /// Antes de `init()` no hace nada: todavía no hay definiciones que evaluar.
+  static Future<void> onScroll(int percentage) async {
+    if (!_initialized) return;
+    await _channel.invokeMethod<void>('onScroll', {'percentage': percentage.clamp(0, 100)});
+  }
+
+  /// Avisa de que el usuario va a salir de la pantalla actual: encola los popups con trigger
+  /// `exit` contra ESTA pantalla y se muestran (tras su retardo) cuando la ruta ya es otra.
+  ///
+  /// No hace falta llamarlo al navegar con [DeepdotsNavigatorObserver]: el `setPath` de la ruta
+  /// nueva ya encola los de la anterior. Sirve para adelantar la cuenta atrás a la intención de
+  /// salir (p. ej. en un botón Atrás propio, ANTES de navegar). Si al vencer el retardo la ruta
+  /// no ha cambiado, el SDK lo descarta. Antes de `init()` no hace nada.
+  static Future<void> onExit() async {
+    if (!_initialized) return;
+    await _channel.invokeMethod<void>('onExit');
+  }
+
   static Future<void> track(String name, [Map<String, Object?>? params]) =>
       _channel.invokeMethod('track', {'name': name, 'params': params});
 
@@ -119,6 +142,13 @@ class DeepdotsPopups {
 /// Reporta cada cambio de ruta con nombre al SDK (`setPath`). Añádelo a
 /// `MaterialApp.navigatorObservers`. Las rutas sin nombre (diálogos, bottom sheets) se ignoran:
 /// no son pantallas y cortarían la visita de la pantalla de debajo.
+///
+/// Triggers de salida (`exit`): no llama a `onExit()`, a propósito. El `setPath` nativo ya encola
+/// los popups de salida de la ruta ANTERIOR antes de cambiar de pantalla, así que el popup queda
+/// asociado a la pantalla de origen sin hacer nada más. Llamarlo aquí sobraría (antes del
+/// `setPath`, el SDK deduplica por popup+origen; con retardo 0 podría vencer antes y descartarse por
+/// "ruta sin cambiar" para que lo vuelva a encolar el `setPath`) o sería incorrecto (después, el origen ya sería
+/// la pantalla nueva).
 class DeepdotsNavigatorObserver extends NavigatorObserver {
   void _report(Route<dynamic>? route) {
     final name = route?.settings.name;
@@ -133,4 +163,50 @@ class DeepdotsNavigatorObserver extends NavigatorObserver {
 
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _report(previousRoute);
+}
+
+/// Reporta al SDK (`onScroll`) el porcentaje de scroll vertical de su subárbol, para los popups
+/// con trigger de tipo `scroll`. Envuelve el cuerpo de la pantalla:
+///
+/// ```dart
+/// body: DeepdotsScrollListener(child: ListView(...))
+/// ```
+///
+/// Solo escucha el scrollable principal (profundidad 0, eje vertical): las listas horizontales
+/// o anidadas no son "el scroll de la pantalla". El porcentaje es `pixels / maxScrollExtent`
+/// redondeado a entero, y solo se envía cuando cambia, igual que los ejemplos nativos
+/// (`distinctUntilChanged` en Android, `lastScrollPct` en iOS): los umbrales son enteros, así
+/// que un cambio por debajo del 1% no puede disparar nada y no merece una llamada al canal.
+/// Si el contenido cabe entero (`maxScrollExtent` 0) no se reporta nada: no hay progreso que
+/// medir, y el rebote de iOS daría una división por cero.
+class DeepdotsScrollListener extends StatefulWidget {
+  const DeepdotsScrollListener({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<DeepdotsScrollListener> createState() => _DeepdotsScrollListenerState();
+}
+
+class _DeepdotsScrollListenerState extends State<DeepdotsScrollListener> {
+  int? _lastReported;
+
+  bool _onNotification(ScrollNotification notification) {
+    final metrics = notification.metrics;
+    if (notification.depth != 0 || metrics.axis != Axis.vertical) return false;
+    final range = metrics.maxScrollExtent - metrics.minScrollExtent;
+    if (range <= 0) return false;
+    // Se acota a 0-100: el rebote (overscroll) de iOS lleva `pixels` fuera del rango.
+    final pct = ((metrics.pixels - metrics.minScrollExtent) / range * 100).round().clamp(0, 100);
+    // Antes de init() no se envía ni se apunta, para no perder el valor cuando ya se pueda enviar.
+    if (pct == _lastReported || !DeepdotsPopups._initialized) return false;
+    _lastReported = pct;
+    DeepdotsPopups.onScroll(pct);
+    return false; // deja que la notificación siga subiendo
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollNotification>(onNotification: _onNotification, child: widget.child);
+  }
 }

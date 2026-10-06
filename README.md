@@ -27,6 +27,16 @@ DeepdotsPopups.events.listen((e) => print(e)); // popup_shown, popup_clicked, su
 El ciclo de vida (`onForeground`/`onBackground`) se conecta solo con `AppLifecycleListener`,
 usando `hide`/`show` y no `inactive`, porque en el SDK nativo `onBackground()` cierra la sesión.
 
+Triggers de scroll y de salida:
+
+- **Scroll:** envolver el cuerpo de la pantalla en `DeepdotsScrollListener(child: ListView(...))`.
+  Reporta `onScroll` (0-100, scrollable principal vertical) solo cuando cambia el entero. Con
+  scroll propio, `DeepdotsPopups.onScroll(pct)` a mano.
+- **Salida (`exit`):** automático con `DeepdotsNavigatorObserver`, sin llamar a `onExit()`: el
+  `setPath` nativo de la ruta nueva ya encola los popups de salida de la anterior.
+  `DeepdotsPopups.onExit()` solo sirve para adelantar la cuenta atrás (botón Atrás propio,
+  llamado ANTES de navegar), como en los ejemplos nativos.
+
 Requisitos del host:
 
 - **Android:** `MainActivity` tiene que extender `FlutterFragmentActivity`. El popup es Compose

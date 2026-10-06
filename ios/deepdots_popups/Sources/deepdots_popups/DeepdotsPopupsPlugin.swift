@@ -33,6 +33,12 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
     case "triggerEvent":
       attachTopViewController()
       sdk.triggerEvent(eventName: args["name"] as! String)
+    case "onScroll":
+      attachTopViewController() // el scroll puede mostrar un popup en el acto
+      sdk.onScroll(percentage: Int32(args["percentage"] as! Int))
+    case "onExit":
+      attachTopViewController()
+      sdk.onExit()
     case "track":
       sdk.track(name: args["name"] as! String, params: args["params"] as? [String: Any])
     case "setUserId":
