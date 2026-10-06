@@ -48,7 +48,7 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
       attachTopViewController()
       sdk.onExit()
     case "track":
-      sdk.track(name: args["name"] as! String, params: args["params"] as? [String: Any])
+      sdk.track(name: args["name"] as! String, params: kotlinMap(args["params"]))
     case "setUserId":
       sdk.setUserId(userId: args["userId"] as? String)
     case "setTrackingEnabled":
