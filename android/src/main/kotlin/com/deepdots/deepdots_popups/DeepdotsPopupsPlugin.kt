@@ -71,6 +71,8 @@ class DeepdotsPopupsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         when (call.method) {
             "setPath" -> sdk.setPath(call.argument<String>("path"))
             "triggerEvent" -> sdk.triggerEvent(call.argument<String>("name")!!)
+            "onScroll" -> sdk.onScroll(call.argument<Int>("percentage")!!)
+            "onExit" -> sdk.onExit()
             "track" -> sdk.track(call.argument<String>("name")!!, call.argument<Map<String, Any?>>("params"))
             "setUserId" -> sdk.setUserId(call.argument<String>("userId"))
             "setTrackingEnabled" -> sdk.setTrackingEnabled(call.argument<Boolean>("enabled")!!)

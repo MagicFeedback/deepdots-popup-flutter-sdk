@@ -114,7 +114,18 @@ class GameScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('/game')),
-      body: const Center(child: Text('Espera 5 segundos…')),
+      // Contenido largo para probar los triggers de scroll: DeepdotsScrollListener reporta el %
+      // del ListView al SDK (onScroll) sin más código en la pantalla.
+      body: DeepdotsScrollListener(
+        child: ListView.builder(
+          key: const Key('game-list'),
+          padding: const EdgeInsets.all(16),
+          itemCount: 40,
+          itemBuilder: (_, i) => i == 0
+              ? const Text('Espera 5 segundos… o haz scroll para los triggers de scroll.')
+              : ListTile(title: Text('Elemento $i')),
+        ),
+      ),
     );
   }
 }
