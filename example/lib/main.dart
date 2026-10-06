@@ -10,15 +10,23 @@ const _publicKey = String.fromEnvironment('DD_KEY', defaultValue: 'jGeIP9g7Dyjf5
 const _language = String.fromEnvironment('DD_LANG', defaultValue: 'en');
 const _eventName = String.fromEnvironment('DD_EVENT', defaultValue: 'custom-event');
 
-void main() {
+// Con --dart-define=DD_EVENT_AT_START=true el evento sale justo después de init(), antes de
+// que el SDK haya bajado los popups de la API: sirve para probar que no se pierde.
+const _eventAtStart = bool.fromEnvironment('DD_EVENT_AT_START');
+// Con --dart-define=DD_AUTO_CLOSE_MS=… se llama a DeepdotsPopups.close() ese tiempo después de
+// cada popup_shown: sirve para probar el cierre programático (el popup tapa los botones).
+const _autoCloseMs = int.fromEnvironment('DD_AUTO_CLOSE_MS');
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  DeepdotsPopups.init(
+  await DeepdotsPopups.init(
     publicKey: _publicKey,
     // El backend aplica el cooldown por userId: cámbialo con --dart-define=DD_USER=… para repetir.
     userId: const String.fromEnvironment('DD_USER', defaultValue: 'flutter-poc'),
     language: _language,
     debug: true,
   );
+  if (_eventAtStart) await DeepdotsPopups.triggerEvent(_eventName);
   runApp(const PocApp());
 }
 
@@ -56,6 +64,9 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _sub = DeepdotsPopups.events.listen((e) {
       debugPrint('[PoC] $e');
+      if (_autoCloseMs > 0 && e.type == 'popup_shown') {
+        Future.delayed(const Duration(milliseconds: _autoCloseMs), DeepdotsPopups.close);
+      }
       setState(() => _log.insert(0, e.toString()));
     });
   }

@@ -64,9 +64,9 @@ Triggers de scroll y de salida:
 
 Requisitos del host:
 
-- **Android:** `MainActivity` tiene que extender `FlutterFragmentActivity`. El popup es Compose
-  y el renderer de KMP exige una `ComponentActivity`. Con `FlutterActivity` no sale nada y el
-  SDK no avisa (el plugin escribe un aviso en logcat).
+- **Android:** vale cualquier `Activity`, también la `FlutterActivity` por defecto. Requiere el
+  SDK nativo con el arreglo `fix/popup-any-activity` (hasta 0.6.0 hacía falta
+  `FlutterFragmentActivity`).
 - **iOS:** excluir `x86_64` en el simulador (`EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64`):
   el SDK KMP no trae slice `iosX64`. Solo afecta a simuladores en Macs Intel.
 
@@ -91,23 +91,33 @@ No se probó a responder y enviar el survey, para no mandar respuestas reales al
 
 ## Hallazgos
 
-1. **Android, `FlutterActivity`:** ver requisitos arriba. Se puede arreglar en KMP montando el
-   `ComposeView` con `ViewTreeLifecycleOwner`/`SavedStateRegistryOwner` propios, y así
-   funcionaría con cualquier `Activity`.
-2. **Android, botón Atrás:** no cierra el popup, cierra la app. El renderer de KMP no
-   intercepta el Atrás. Seguramente pasa igual en nativo.
-3. **iOS, presentación:** el popup se presenta desde el `rootViewController`. Si el host tiene
+Arreglados en el SDK nativo (ramas de KMP, pendientes de PR y release) y verificados en el
+emulador y el simulador el 2026-10-06 con este plugin:
+
+| Hallazgo | Rama KMP | Verificado |
+|---|---|---|
+| El popup no salía con una `Activity` normal (`FlutterActivity`) | `fix/popup-any-activity` | Android |
+| Atrás cerraba la app en vez del popup | `fix/android-back-closes-popup` | Android |
+| Un evento lanzado antes de cargar los popups se perdía | `fix/queue-events-before-load` | Android, iOS |
+| `popup_clicked` falso al cargar el survey | `fix/no-popup-clicked-on-load` | Android, iOS |
+| `close()` en iOS cerraba cualquier modal del host | `fix/ios-close-only-popup` | iOS (cierre del popup) |
+
+Abiertos:
+
+1. **iOS, presentación:** el popup se presenta desde el `rootViewController`. Si el host tiene
    un VC nativo presentado encima (picker, share sheet), UIKit no deja presentar y no sale.
-4. **Eventos antes de cargar las definiciones:** un `triggerEvent` que llega antes de que el
-   SDK baje los popups de la API se descarta (`No eligible event popup`), no se encola. Se
-   reprodujo pulsando el botón nada más arrancar. Pasa igual en nativo.
-5. **`popup_clicked` al cargar:** KMP emite `popup_clicked` hacia el host cuando el survey carga
-   (o falla), sin interacción. No toca el estado del backend (PARTIAL solo con
-   `action == "partial"`), pero confunde a quien lo escuche. Pasa igual en nativo.
-6. **Tamaño:** el XCFramework estático ocupa 231 MB (símbolos de depuración incluidos). El
-   binario final de la app es mucho menor, pero para publicar conviene tirar del paquete SPM y
-   del artefacto de Maven Central, no vendorizar.
-7. **Distribución:** para publicar en pub.dev, el plugin necesita el SDK nativo publicado:
+2. **iOS, evento al arrancar:** en una prueba, un evento lanzado justo tras `init()` en el
+   primer arranque después de instalar no llegó a pintarse, y en el arranque siguiente el SDK
+   lo daba ya por mostrado (`No eligible`). Con una instalación limpia posterior funcionó. Sin
+   reproducir; sospecha: la reproducción de la cola llega antes de que exista la ventana y el
+   popup se marca como mostrado aunque UIKit no lo presente.
+3. **`reportError`:** el payload difiere entre plataformas (en iOS el stack de Dart va en
+   `context`, porque desde Swift no se puede fijar el stack de un `KotlinThrowable`).
+4. **`setLanguage`:** solo cambia los textos del chrome a partir del siguiente popup; el idioma
+   de analytics se fija en `init()`.
+5. **Tamaño:** el XCFramework estático ocupa 231 MB (símbolos de depuración incluidos). Para
+   publicar conviene tirar del paquete SPM y de Maven Central, no vendorizar.
+6. **Distribución:** para publicar en pub.dev, el plugin necesita el SDK nativo publicado:
    Maven Central (parado en 0.3.0) y SPM (`DeepdotsSDK-SPM`).
 
 ## Regenerar el SDK vendorizado
