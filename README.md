@@ -137,10 +137,10 @@ Abiertos:
 
 ## Ejecutar el ejemplo
 
-Por defecto usa DEV (MAGICFEEDBACK_DEV), escenario `rate-product` de los test apps nativos:
-el botón dispara `rate_product`. `DD_KEY`, `DD_ENV=production`, `DD_LANG`, `DD_EVENT` y `DD_USER`
-lo cambian. El backend aplica el cooldown por `userId`; para repetir, cambia el usuario:
+El ejemplo es NORDLY, la tienda de los test apps nativos, en Flutter: mismas pantallas, ids de
+accesibilidad, escenarios DEV y argumentos de arranque, así que los flows de Maestro nativos corren
+contra él cambiando solo el `appId`. Detalles en [example/README.md](example/README.md).
 
 ```bash
-cd example && flutter run --dart-define=DD_USER=flutter-poc-3
+cd example && flutter run --dart-define=scenario=rate-product
 ```
