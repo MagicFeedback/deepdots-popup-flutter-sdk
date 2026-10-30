@@ -8,6 +8,8 @@ import com.deepdots.sdk.analytics.AnalyticsKeys
 import com.deepdots.sdk.models.Environment
 import com.deepdots.sdk.models.Event
 import com.deepdots.sdk.models.EventData
+import com.deepdots.sdk.models.FeedbackSession
+import com.deepdots.sdk.models.FeedbackSessionStatus
 import com.deepdots.sdk.models.InitOptions
 import com.deepdots.sdk.models.PopupOptions
 import com.deepdots.sdk.models.ShowOptions
@@ -78,6 +80,7 @@ class DeepdotsPopupsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             "onBackground" -> sdk.onBackground()
             "getUserId" -> return result.success(sdk.getUserId())
             "getSessionId" -> return result.success(sdk.getSessionId())
+            "getFeedbackSessionId" -> return result.success(sdk.getFeedbackSessionId())
             // ───────── Analytics ─────────
             "setUserAttributes" -> sdk.setUserAttributes(call.argument<Map<String, Any?>>("attributes")!!)
             "setContactAttributes" -> return setContactAttributes(sdk, call, result)
@@ -170,6 +173,7 @@ class DeepdotsPopupsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             metadata = buildMetadata(userId, call.argument<Map<String, Any?>>("metadata")),
             renderChrome = call.argument<Boolean>("renderChrome"),
             showProgressBar = call.argument<Boolean>("showProgressBar"),
+            onFeedbackSession = { session -> emitFeedbackSession(session) },
         )
         val instance = DeepdotsPopups()
         instance.init(options)
@@ -220,6 +224,15 @@ class DeepdotsPopupsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             "timestamp" to data.timestamp,
         )
         mainHandler.post { channel.invokeMethod("onEvent", payload) }
+    }
+
+    /** Llega desde un hilo de fondo del SDK: el canal se usa en el principal. */
+    private fun emitFeedbackSession(session: FeedbackSession) {
+        val payload = mapOf(
+            "sessionId" to session.sessionId,
+            "status" to if (session.status == FeedbackSessionStatus.Closed) "closed" else "open",
+        )
+        mainHandler.post { channel.invokeMethod("onFeedbackSession", payload) }
     }
 
     /** `metadata` libre del host + `userId`, que gana. El SDK no admite valores nulos. */

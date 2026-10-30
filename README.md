@@ -4,9 +4,11 @@ Plugin de Flutter que envuelve el SDK nativo de Deepdots (KMP, repo
 `deepdots-popup-mobile-native-sdk`) para Android e iOS. No reimplementa lógica: la API de Dart
 traduce cada llamada a `DeepdotsPopups` nativo por un `MethodChannel` y reenvía sus eventos.
 
-**Estado: prueba de concepto, no publicable.** El SDK nativo va vendorizado (0.6.0, compilado
-desde `origin/dev` el 2026-10-06): repo Maven local en `android/maven` y XCFramework en
-`ios/deepdots_popups/Frameworks`.
+**Estado: beta (MF-3270).** Usa el SDK nativo **0.7.5** publicado: Maven Central
+(`com.deepdots.sdk:shared-android`) en Android y el paquete `MagicFeedback/DeepdotsSDK-SPM` en iOS
+(SPM, o con CocoaPods el podspec descarga el mismo XCFramework y comprueba su sha256). La versión
+nativa se cambia en `android/build.gradle.kts`, `ios/deepdots_popups/Package.swift` y
+`ios/deepdots_popups.podspec` (versión y sha256), siempre las tres a la vez.
 
 ## Uso
 
@@ -64,11 +66,24 @@ Triggers de scroll y de salida:
 
 Requisitos del host:
 
-- **Android:** vale cualquier `Activity`, también la `FlutterActivity` por defecto. Requiere el
-  SDK nativo con el arreglo `fix/popup-any-activity` (hasta 0.6.0 hacía falta
-  `FlutterFragmentActivity`).
-- **iOS:** excluir `x86_64` en el simulador (`EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64`):
-  el SDK KMP no trae slice `iosX64`. Solo afecta a simuladores en Macs Intel.
+- **Android:** vale cualquier `Activity`, también la `FlutterActivity` por defecto (SDK nativo
+  ≥ 0.7.0). minSdk 24, compileSdk 36.
+- **iOS:** 13.0. El SDK nativo no trae slice `x86_64` de simulador (solo afecta a Macs Intel).
+  - **SPM** (por defecto en Flutter 3.47): no hace falta nada.
+  - **CocoaPods:** Flutter incluye su `Generated.xcconfig` después del de Pods y deja
+    `EXCLUDED_ARCHS` en `i386`, así que `flutter build ios --simulator` falla con
+    `Module 'deepdots_popups' not found`. Añadir al `post_install` del `Podfile`:
+
+    ```ruby
+    installer.aggregate_targets.each do |aggregate|
+      aggregate.user_project.native_targets.each do |target|
+        target.build_configurations.each do |config|
+          config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386 x86_64'
+        end
+      end
+      aggregate.user_project.save
+    end
+    ```
 
 ## Qué se verificó (2026-10-06)
 
@@ -120,22 +135,11 @@ Abiertos:
 6. **Distribución:** para publicar en pub.dev, el plugin necesita el SDK nativo publicado:
    Maven Central (parado en 0.3.0) y SPM (`DeepdotsSDK-SPM`).
 
-## Regenerar el SDK vendorizado
-
-Desde un worktree limpio del repo KMP:
-
-```bash
-JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :shared:publishAndroidReleasePublicationToReleaseStagingRepository :shared:publishKotlinMultiplatformPublicationToReleaseStagingRepository :shared:assembleSharedReleaseXCFramework -PskipGradleSigning=true
-```
-
-Copiar `build/release-staging-repo/com` a `android/maven/` y
-`shared/build/XCFrameworks/release/shared.xcframework` a
-`ios/deepdots_popups/Frameworks/DeepdotsSDK.xcframework`.
-
 ## Ejecutar el ejemplo
 
-Por defecto usa la clave del demo de docs.deepdots.com (`DD_KEY`, `DD_LANG`, `DD_EVENT` la
-cambian). El backend aplica el cooldown por `userId`; para repetir, cambia el usuario:
+Por defecto usa DEV (MAGICFEEDBACK_DEV), escenario `rate-product` de los test apps nativos:
+el botón dispara `rate_product`. `DD_KEY`, `DD_ENV=production`, `DD_LANG`, `DD_EVENT` y `DD_USER`
+lo cambian. El backend aplica el cooldown por `userId`; para repetir, cambia el usuario:
 
 ```bash
 cd example && flutter run --dart-define=DD_USER=flutter-poc-3

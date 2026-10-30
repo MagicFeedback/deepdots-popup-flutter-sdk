@@ -6,23 +6,23 @@ import PackageDescription
 let package = Package(
     name: "deepdots_popups",
     platforms: [
-        .iOS("15.0")
+        .iOS("13.0")
     ],
     products: [
         .library(name: "deepdots-popups", targets: ["deepdots_popups"])
     ],
     dependencies: [
-        .package(name: "FlutterFramework", path: "../FlutterFramework")
+        .package(name: "FlutterFramework", path: "../FlutterFramework"),
+        // SDK nativo de Deepdots (KMP). Misma versión que DEEPDOTS_SDK_VERSION en el podspec.
+        .package(url: "https://github.com/MagicFeedback/DeepdotsSDK-SPM", exact: "0.7.5")
     ],
     targets: [
-        // SDK nativo de Deepdots (KMP), vendorizado para la prueba de concepto. En producción
-        // vendría del paquete SPM publicado (repo DeepdotsSDK-SPM).
-        .binaryTarget(name: "DeepdotsSDK", path: "Frameworks/DeepdotsSDK.xcframework"),
         .target(
             name: "deepdots_popups",
             dependencies: [
                 .product(name: "FlutterFramework", package: "FlutterFramework"),
-                "DeepdotsSDK"
+                // El producto se llama ComposeApp; el módulo que se importa es DeepdotsSDK.
+                .product(name: "ComposeApp", package: "DeepdotsSDK-SPM")
             ],
             resources: [
                 // If your plugin requires a privacy manifest, for example if it uses any required

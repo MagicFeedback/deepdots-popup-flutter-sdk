@@ -3,12 +3,16 @@ import 'dart:async';
 import 'package:deepdots_popups/deepdots_popups.dart';
 import 'package:flutter/material.dart';
 
-// Por defecto, la clave del demo público de docs.deepdots.com: su popup "Event rateing" salta
-// con el evento `custom-event` en inglés, sin restricción de ruta. Todo se puede cambiar con
-// --dart-define (DD_KEY, DD_LANG, DD_EVENT, DD_USER).
-const _publicKey = String.fromEnvironment('DD_KEY', defaultValue: 'jGeIP9g7Dyjf5HYAFDM8ozxZqQSiQMfJ');
+// Por defecto, el escenario `rate-product` de los test apps nativos en DEV (MAGICFEEDBACK_DEV,
+// test-apps/scenarios.json del repo nativo): un popup que salta con el evento `rate_product`.
+// Las claves públicas son públicas por diseño (van dentro de la app). Todo se puede cambiar con
+// --dart-define (DD_KEY, DD_ENV=production, DD_LANG, DD_EVENT, DD_USER).
+const _publicKey = String.fromEnvironment('DD_KEY', defaultValue: 'BxA1C4uaFsrQAR5PsYn4ESafn29jHAbd');
+const _environment = String.fromEnvironment('DD_ENV') == 'production'
+    ? DeepdotsEnvironment.production
+    : DeepdotsEnvironment.development;
 const _language = String.fromEnvironment('DD_LANG', defaultValue: 'en');
-const _eventName = String.fromEnvironment('DD_EVENT', defaultValue: 'custom-event');
+const _eventName = String.fromEnvironment('DD_EVENT', defaultValue: 'rate_product');
 
 // Con --dart-define=DD_EVENT_AT_START=true el evento sale justo después de init(), antes de
 // que el SDK haya bajado los popups de la API: sirve para probar que no se pierde.
@@ -21,6 +25,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DeepdotsPopups.init(
     publicKey: _publicKey,
+    environment: _environment,
     // El backend aplica el cooldown por userId: cámbialo con --dart-define=DD_USER=… para repetir.
     userId: const String.fromEnvironment('DD_USER', defaultValue: 'flutter-poc'),
     language: _language,
