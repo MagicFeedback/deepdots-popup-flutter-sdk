@@ -1,0 +1,142 @@
+# Plugin CI (MF-3270): analyze + unit tests, then the example app (NORDLY in Flutter) on an Android
+# emulator and an iOS simulator with the Maestro suite of the native SDK's test apps, against DEV
+# (MAGICFEEDBACK_DEV). Docs: example/README.md
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+    inputs:
+      record:
+        description: "Record one video per flow"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.47.6"
+  # Maestro flows and runner: test-apps/ of the native SDK at this commit (dev after PR #52).
+  # Move it on purpose, when the flows we want are there: new native flows may not apply here.
+  NATIVE_REPO: MagicFeedback/deepdots-popup-mobile-native-sdk
+  NATIVE_TEST_APPS_REF: 007f9c93f2a412fecd9585e29ecbbf6c879742e0
+
+jobs:
+  check:
+    name: Analyze & unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get && (cd example && flutter pub get)
+      - run: flutter analyze
+      - run: flutter test
+      - name: Example widget tests
+        working-directory: example
+        run: flutter test
+
+  android:
+    name: Android · example + Maestro
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build example
+        working-directory: example
+        run: flutter build apk --debug
+      - name: Native Maestro suite
+        run: .github/scripts/native-suite.sh
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Run suite on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          RECORD: ${{ github.event.inputs.record == 'true' && '1' || '0' }}
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          cores: 4
+          ram-size: 4096M
+          heap-size: 512M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: |
+            adb install -r example/build/app/outputs/flutter-apk/app-debug.apk
+            native-suite/scripts/run-maestro.sh android $NATIVE_SDK out/android
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: example-android
+          path: out/android
+          retention-days: 14
+
+  ios:
+    name: iOS · example + Maestro
+    runs-on: macos-15
+    timeout-minutes: 60
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)" && xcodebuild -version
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Build example
+        working-directory: example
+        run: flutter build ios --simulator --debug
+      - name: Native Maestro suite
+        run: .github/scripts/native-suite.sh
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Boot simulator and install
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          phones = [x for r, v in json.load(sys.stdin)['devices'].items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')]
+          print(next((x for x in phones if x['name'] == 'iPhone 16'), phones[-1])['udid'])")
+          echo "DEVICE=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" && xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" example/build/ios/iphonesimulator/Runner.app
+      - name: Run suite on the simulator
+        env:
+          RECORD: ${{ github.event.inputs.record == 'true' && '1' || '0' }}
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: "180000"
+        run: native-suite/scripts/run-maestro.sh ios "$NATIVE_SDK" out/ios
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: example-ios
+          path: out/ios
+          retention-days: 14

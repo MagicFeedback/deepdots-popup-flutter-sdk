@@ -35,3 +35,4 @@ migrate_working_dir/
 # SDK nativo de Deepdots (KMP): el podspec descarga aquí el XCFramework
 ios/deepdots_popups/Frameworks/
 android/maven/
+native-suite/
