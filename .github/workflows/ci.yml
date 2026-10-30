@@ -50,6 +50,12 @@ jobs:
     timeout-minutes: 60
     needs: check
     steps:
+      # Flutter, Gradle and the build leave too little disk for the emulator's system image. First
+      # step: the tool cache goes too, and Java and Flutter are installed after it.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/.ghcup /usr/share/swift "$AGENT_TOOLSDIRECTORY"
+          df -h /
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
@@ -69,11 +75,6 @@ jobs:
         run: |
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
-      # Flutter, Gradle and the build leave too little disk for the emulator's system image.
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/.ghcup "$AGENT_TOOLSDIRECTORY"
-          df -h /
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -125,7 +126,7 @@ jobs:
           channel: stable
           cache: true
       - name: Build example
-        working-directory: example
+        working-directory: deepdots_popups/example
         run: flutter build ios --simulator --debug
       - name: Native Maestro suite
         run: .github/scripts/native-suite.sh
