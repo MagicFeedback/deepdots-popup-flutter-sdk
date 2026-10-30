@@ -69,7 +69,14 @@ Requisitos del host:
 - **Android:** vale cualquier `Activity`, también la `FlutterActivity` por defecto (SDK nativo
   ≥ 0.7.0). minSdk 24, compileSdk 36.
 - **iOS:** 13.0. El SDK nativo no trae slice `x86_64` de simulador (solo afecta a Macs Intel).
-  - **SPM** (por defecto en Flutter 3.47): no hace falta nada.
+  - **SPM** (por defecto en Flutter 3.47): `flutter run` en simulador compila solo arm64 y
+    funciona, pero `flutter build ios --simulator` compila también x86_64 y el enlazado falla
+    (`Undefined symbol: _OBJC_CLASS_$_DSDK…`). Añadir al final de `ios/Flutter/Debug.xcconfig` y
+    `ios/Flutter/Release.xcconfig`:
+
+    ```
+    EXCLUDED_ARCHS[sdk=iphonesimulator*] = i386 x86_64
+    ```
   - **CocoaPods:** Flutter incluye su `Generated.xcconfig` después del de Pods y deja
     `EXCLUDED_ARCHS` en `i386`, así que `flutter build ios --simulator` falla con
     `Module 'deepdots_popups' not found`. Añadir al `post_install` del `Podfile`:

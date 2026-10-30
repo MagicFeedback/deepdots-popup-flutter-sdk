@@ -69,6 +69,11 @@ jobs:
         run: |
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      # Flutter, Gradle and the build leave too little disk for the emulator's system image.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/.ghcup "$AGENT_TOOLSDIRECTORY"
+          df -h /
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -102,8 +107,16 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 60
     needs: check
+    # The example sits inside the plugin's repo: SPM then takes the plugin's identity from the
+    # checkout directory, which must be the package name ("…identity 'deepdots-popup-flutter-sdk'
+    # doesn't match override's identity 'deepdots_popups'"). Apps outside the repo are not affected.
+    defaults:
+      run:
+        working-directory: deepdots_popups
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: deepdots_popups
       - name: Select Xcode
         run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)" && xcodebuild -version
       - uses: subosito/flutter-action@v2
@@ -138,5 +151,5 @@ jobs:
         if: always()
         with:
           name: example-ios
-          path: out/ios
+          path: deepdots_popups/out/ios
           retention-days: 14
