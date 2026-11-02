@@ -66,9 +66,10 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+      # Release (AOT, signed with the debug key): a debug build runs JIT, too heavy for this runner.
       - name: Build example
         working-directory: example
-        run: flutter build apk --debug
+        run: flutter build apk --release
       - name: Native Maestro suite
         run: .github/scripts/native-suite.sh
       - name: Install Maestro
@@ -88,13 +89,15 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
-          cores: 4
-          ram-size: 4096M
+          # Private-repo ubuntu runners are small (2 vCPU): a bigger emulator took 12 min to boot
+          # and the runner was lost mid-suite (run 41091613147).
+          cores: 2
+          ram-size: 3072M
           heap-size: 512M
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           script: |
-            adb install -r example/build/app/outputs/flutter-apk/app-debug.apk
+            adb install -r example/build/app/outputs/flutter-apk/app-release.apk
             native-suite/scripts/run-maestro.sh android $NATIVE_SDK out/android
       - uses: actions/upload-artifact@v4
         if: always()
