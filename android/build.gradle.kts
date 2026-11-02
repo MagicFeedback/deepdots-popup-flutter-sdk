@@ -14,17 +14,11 @@ buildscript {
     }
 }
 
-// SDK nativo de Deepdots (KMP) vendorizado como repo Maven local, para la prueba de concepto.
-// En producción vendría de Maven Central (com.deepdots.sdk:shared-android).
-// Se registra en el proyecto raíz (no en `allprojects` de este script, que solo alcanza al
-// plugin): la dependencia transitiva la resuelve también el módulo `:app` del host.
-val deepdotsLocalRepo = file("maven")
-
-rootProject.allprojects {
+// SDK nativo de Deepdots (KMP) desde Maven Central: com.deepdots.sdk:shared-android.
+allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri(deepdotsLocalRepo) }
     }
 }
 
@@ -79,7 +73,7 @@ kotlin {
 }
 
 dependencies {
-    implementation("com.deepdots.sdk:shared-android:0.6.0")
+    implementation("com.deepdots.sdk:shared-android:0.7.6")
     // Scope propio del plugin para las llamadas `suspend` del SDK (setContactAttributes).
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     testImplementation("org.jetbrains.kotlin:kotlin-test")

@@ -39,17 +39,38 @@ class DeepdotsEvent {
   String toString() => 'DeepdotsEvent($type, popup=$popupId, survey=$surveyId)';
 }
 
+/// Sesión de analytics tal como la ve la API de Deepdots: cada sesión acaba siendo UN feedback y
+/// [sessionId] es su `sdkSessionId`. Llega por [DeepdotsPopups.feedbackSessions].
+class DeepdotsFeedbackSession {
+  const DeepdotsFeedbackSession({required this.sessionId, required this.closed});
+
+  final String sessionId;
+
+  /// `false` cuando la API acepta el primer lote de la sesión; `true` cuando acepta el de cierre.
+  final bool closed;
+
+  @override
+  String toString() => 'DeepdotsFeedbackSession($sessionId, ${closed ? 'closed' : 'open'})';
+}
+
 class DeepdotsPopups {
   DeepdotsPopups._();
 
   static const MethodChannel _channel = MethodChannel('com.deepdots/popups');
   static final StreamController<DeepdotsEvent> _events = StreamController.broadcast();
+  static final StreamController<DeepdotsFeedbackSession> _feedbackSessions = StreamController.broadcast();
   static AppLifecycleListener? _lifecycle;
   static bool _initialized = false;
   static String? _pendingPath;
 
   /// Eventos de los popups, para analítica propia del host o para reaccionar en la UI.
   static Stream<DeepdotsEvent> get events => _events.stream;
+
+  /// Apertura y cierre de cada sesión de analytics (`onFeedbackSession` nativo; necesita
+  /// `analyticsPublicKey`). Agrupa por `sessionId`, no por orden: el `open` de la siguiente sesión
+  /// puede llegar antes que el `closed` de la anterior. Si la app muere antes de cerrar, el
+  /// `closed` no llega.
+  static Stream<DeepdotsFeedbackSession> get feedbackSessions => _feedbackSessions.stream;
 
   /// Inicializa el SDK nativo. Idempotente: una segunda llamada no hace nada.
   ///
@@ -158,6 +179,11 @@ class DeepdotsPopups {
   static Future<String?> getUserId() => _channel.invokeMethod<String>('getUserId');
 
   static Future<String?> getSessionId() => _channel.invokeMethod<String>('getSessionId');
+
+  /// Id del feedback en que se convertirá la sesión de analytics abierta (`sdkSessionId` en la
+  /// API). `null` hasta que la API acepta el primer lote, tras cerrar la sesión y sin
+  /// `analyticsPublicKey`. Para saber también qué sesión se cerró, usa [feedbackSessions].
+  static Future<String?> getFeedbackSessionId() => _channel.invokeMethod<String>('getFeedbackSessionId');
 
   // ───────── Analytics ─────────
   //
@@ -299,15 +325,22 @@ class DeepdotsPopups {
   static Future<void> triggerClick(String targetId) =>
       _channel.invokeMethod('triggerClick', {'targetId': targetId});
 
-  /// Cambia el idioma que el SDK nativo lee de `provideLang`: textos del chrome del popup
-  /// (botones, progreso) mientras el survey no trae idioma propio. Aplica al siguiente popup
-  /// que se pinte; con `null` el chrome cae a inglés. Se puede llamar antes de [init]; un
-  /// `language` no nulo en [init] lo sustituye.
-  /// Ojo: el idioma del contexto de analytics se resuelve una vez en `init()` y no cambia.
+  /// Cambia el idioma que el SDK nativo lee de `provideLang`. Decide qué popups se muestran
+  /// (`segments.lang`, por prefijo: `en-US` encaja con `en`), en qué idioma se pide el survey y
+  /// los textos del popup. Aplica al siguiente popup; con `null` manda el idioma del dispositivo.
+  /// Se puede llamar antes de [init]; un `language` no nulo en [init] lo sustituye.
   static Future<void> setLanguage(String? language) =>
       _channel.invokeMethod('setLanguage', {'language': language});
 
   static Future<void> _onNativeCall(MethodCall call) async {
+    if (call.method == 'onFeedbackSession') {
+      final args = Map<String, Object?>.from(call.arguments as Map);
+      _feedbackSessions.add(DeepdotsFeedbackSession(
+        sessionId: args['sessionId'] as String,
+        closed: args['status'] == 'closed',
+      ));
+      return;
+    }
     if (call.method != 'onEvent') return;
     final args = Map<String, Object?>.from(call.arguments as Map);
     _events.add(DeepdotsEvent(

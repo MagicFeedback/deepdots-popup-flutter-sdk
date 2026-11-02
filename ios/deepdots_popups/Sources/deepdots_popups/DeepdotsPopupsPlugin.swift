@@ -61,6 +61,8 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
       return result(sdk.getUserId())
     case "getSessionId":
       return result(sdk.getSessionId())
+    case "getFeedbackSessionId":
+      return result(sdk.getFeedbackSessionId())
     // ───────── Analytics ─────────
     case "setUserAttributes":
       sdk.setUserAttributes(attributes: kotlinMap(args["attributes"]) ?? [:])
@@ -159,6 +161,7 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
       storage: nil,
       trackingEnabled: KotlinBoolean(bool: args["trackingEnabled"] as? Bool ?? true),
       analytics: analytics,
+      onFeedbackSession: { [weak self] session in self?.emitFeedbackSession(session) },
       geolocation: KotlinBoolean(bool: args["geolocation"] as? Bool ?? true),
       contactAttributes: kotlinMap(args["contactAttributes"]),
       renderChrome: (args["renderChrome"] as? Bool).map { KotlinBoolean(bool: $0) },
@@ -234,6 +237,15 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
     return map.mapValues { kotlinValue($0) ?? NSNull() }
   }
 
+  /// Llega desde un hilo de fondo del SDK: el canal se usa en el principal.
+  private func emitFeedbackSession(_ session: FeedbackSession) {
+    let payload: [String: Any] = [
+      "sessionId": session.sessionId,
+      "status": session.status == FeedbackSessionStatus.closed ? "closed" : "open",
+    ]
+    DispatchQueue.main.async { self.channel.invokeMethod("onFeedbackSession", arguments: payload) }
+  }
+
   private func emit(_ event: Event, _ data: EventData) {
     let payload: [String: Any] = [
       "type": event.code(),
@@ -265,9 +277,7 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
   /// Contexto para los métodos que pintan o cierran un popup; sin root view controller, error
   /// a Dart. Misma búsqueda que `attachTopViewController`.
   private func platformContext(_ result: FlutterResult) -> PlatformContext? {
-    let root = UIApplication.shared.connectedScenes
-      .compactMap { ($0 as? UIWindowScene)?.keyWindow?.rootViewController }
-      .first
+    let root = rootViewController()
     guard let root = root else {
       result(FlutterError(code: "no_context", message: "No root view controller yet: cannot show or close popups", details: nil))
       return nil
@@ -275,16 +285,19 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
     return PlatformContext(viewController: root)
   }
 
-  /// El SDK presenta el popup desde el root view controller (en Flutter, el
-  /// `FlutterViewController`). Se refresca antes de cada trigger porque en `init()` la ventana
-  /// puede no existir todavía. No se sube por `presentedViewController`: con un popup abierto
-  /// ese sería el propio popup, y presentar desde él rompería el siguiente.
-  /// Limitación conocida: si el host tiene un VC nativo presentado (un picker, un share sheet),
-  /// UIKit no deja presentar encima y el popup no sale.
+  /// Root view controller de la ventana principal. `UIWindowScene.keyWindow` es de iOS 15.
+  private func rootViewController() -> UIViewController? {
+    UIApplication.shared.connectedScenes
+      .compactMap { scene in (scene as? UIWindowScene)?.windows.first(where: { $0.isKeyWindow }) }
+      .first?.rootViewController
+  }
+
+  /// El contexto es el root view controller (en Flutter, el `FlutterViewController`). Se refresca
+  /// antes de cada trigger porque en `init()` la ventana puede no existir todavía. No se sube por
+  /// `presentedViewController`: desde 0.7.2 el SDK presenta desde lo alto de la cadena de
+  /// presentados (sheets del host incluidas) y espera si hay una alerta encima.
   private func attachTopViewController() {
-    let root = UIApplication.shared.connectedScenes
-      .compactMap { ($0 as? UIWindowScene)?.keyWindow?.rootViewController }
-      .first
+    let root = rootViewController()
     guard let root = root else { return }
     sdk?.attachContext(context: PlatformContext(viewController: root))
   }

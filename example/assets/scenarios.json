@@ -1,0 +1,86 @@
+{
+  "$comment": "Copy of test-apps/scenarios.json in deepdots-popup-mobile-native-sdk (MF-3244), without the customer replicas: popup configs in DEV (api-dev.deepdots.com, company MAGICFEEDBACK_DEV), one per scenario. The public keys are public by design: they are what a customer's app ships with. Keep it in sync with the native file.",
+  "environment": "Development",
+  "company": "MAGICFEEDBACK_DEV",
+  "surveys": {
+    "simple": "5581b5a0-d2df-11f1-b287-1be76c3f931d",
+    "complex": "7c78d670-d2df-11f1-b287-1be76c3f931d"
+  },
+  "productKey": "3c75ebc69b72f7cf1e4a6774a8e78711",
+  "scenarios": {
+    "checkout-time": {
+      "publicKey": "unR0ncfqAPCBAwIcK1E0gY5bLB4In33p",
+      "popupOptionId": "54781430-d2e7-11f1-ab43-833369eb683b",
+      "describe": "time_on_page 3 s, segments.path /checkout, simple survey",
+      "title": "Did anything stop you from completing your order?"
+    },
+    "exit-checkout": {
+      "publicKey": "A9AvTiUei4M5thWHWBkaweZzizOJaDL2",
+      "popupOptionId": "54d1a5e0-d2e7-11f1-ab43-833369eb683b",
+      "describe": "exit trigger (2 s) when leaving /checkout, shown on the destination screen",
+      "title": "Why did you leave the checkout?"
+    },
+    "rate-product": {
+      "publicKey": "BxA1C4uaFsrQAR5PsYn4ESafn29jHAbd",
+      "popupOptionId": "550e60c0-d2e7-11f1-ab43-833369eb683b",
+      "describe": "event rate_product (bottom sheet \"Submit rating\"), complex survey",
+      "title": "Tell us what you think of this product",
+      "events": [
+        "rate_product"
+      ]
+    },
+    "help-click": {
+      "publicKey": "ll3lGXsyQYiPgeZfaN7HDgIkQBoLj0x2",
+      "popupOptionId": "55443dd0-d2e7-11f1-ab43-833369eb683b",
+      "describe": "click trigger on help-button (Account > Help)",
+      "title": "Can we help?"
+    },
+    "redisplay": {
+      "publicKey": "4ubLBWVCMz9PLe7yw3pTJIYe9PnPgmrU",
+      "popupOptionId": "556d97c0-d2e7-11f1-ab43-833369eb683b",
+      "describe": "time_on_page 2 s on /account with cooldown SHOWED 1 day: shown once, not again after a restart",
+      "title": "How is your account?"
+    },
+    "not-on-cart": {
+      "publicKey": "6JxVewL3jvathr0HxuSsPKdDpsZVSaIb",
+      "popupOptionId": "55980320-d2e7-11f1-ab43-833369eb683b",
+      "describe": "time_on_page 2 s everywhere except /cart and /checkout (excludedPaths)",
+      "title": "Like what you see?"
+    },
+    "audience-lang": {
+      "publicKey": "WUCn9UwdE9QtunC9oPcif4BlDLVHfeZL",
+      "popupOptionId": "55cccec0-d2e7-11f1-ab43-833369eb683b",
+      "describe": "audience segmentation: two popups on rate_product, segments.lang en / es; the app language picks one",
+      "title": "Rate this product (EN audience)",
+      "events": [
+        "rate_product"
+      ]
+    },
+    "release-fixtures": {
+      "publicKey": "aaU0GgF52Uk8qXjF9jPVqUY6vhd9ve3y",
+      "popupOptionId": "560f07e0-d2e7-11f1-ab43-833369eb683b",
+      "describe": "release/fixtures/popups/*.json (MF-3242) served by the DEV API, with the real simple survey; path and es-only segments dropped, legacy trigger stored in the current shape",
+      "title": "Quick question",
+      "events": [
+        "fixture_minimal",
+        "fixture_full",
+        "fixture_hash",
+        "fixture_legacy"
+      ]
+    },
+    "fault-survey-missing": {
+      "publicKey": "zMP1bzuWvLuKbJazVeSDRprRjZRk4ru2",
+      "popupOptionId": "567c48a0-d2e7-11f1-ab43-833369eb683b",
+      "describe": "fault: popup on event fault_survey whose survey id does not exist, so the survey fails to load",
+      "title": "This survey does not exist",
+      "events": [
+        "fault_survey"
+      ]
+    },
+    "fault-popups-error": {
+      "publicKey": "invalid-key-mf3244",
+      "describe": "fault: unknown public key, GET /sdk/{key}/popups answers 406 and no popup loads",
+      "title": null
+    }
+  }
+}

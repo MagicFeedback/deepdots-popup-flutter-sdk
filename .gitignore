@@ -32,6 +32,7 @@ migrate_working_dir/
 /build/
 /coverage/
 
-# SDK nativo de Deepdots (KMP) vendorizado: se regenera, ver README
+# SDK nativo de Deepdots (KMP): el podspec descarga aquí el XCFramework
 ios/deepdots_popups/Frameworks/
 android/maven/
+native-suite/
