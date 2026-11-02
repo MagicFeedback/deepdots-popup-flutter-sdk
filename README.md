@@ -4,7 +4,7 @@ Plugin de Flutter que envuelve el SDK nativo de Deepdots (KMP, repo
 `deepdots-popup-mobile-native-sdk`) para Android e iOS. No reimplementa lógica: la API de Dart
 traduce cada llamada a `DeepdotsPopups` nativo por un `MethodChannel` y reenvía sus eventos.
 
-**Estado: beta (MF-3270).** Usa el SDK nativo **0.7.5** publicado: Maven Central
+**Estado: beta (MF-3270).** Usa el SDK nativo **0.7.6** publicado: Maven Central
 (`com.deepdots.sdk:shared-android`) en Android y el paquete `MagicFeedback/DeepdotsSDK-SPM` en iOS
 (SPM, o con CocoaPods el podspec descarga el mismo XCFramework y comprueba su sha256). La versión
 nativa se cambia en `android/build.gradle.kts`, `ios/deepdots_popups/Package.swift` y

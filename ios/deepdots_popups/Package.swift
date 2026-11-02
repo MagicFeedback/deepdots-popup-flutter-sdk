@@ -14,7 +14,7 @@ let package = Package(
     dependencies: [
         .package(name: "FlutterFramework", path: "../FlutterFramework"),
         // SDK nativo de Deepdots (KMP). Misma versión que DEEPDOTS_SDK_VERSION en el podspec.
-        .package(url: "https://github.com/MagicFeedback/DeepdotsSDK-SPM", exact: "0.7.5")
+        .package(url: "https://github.com/MagicFeedback/DeepdotsSDK-SPM", exact: "0.7.6")
     ],
     targets: [
         .target(

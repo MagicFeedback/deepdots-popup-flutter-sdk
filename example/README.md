@@ -52,9 +52,12 @@ see it again, as the Maestro flows do with `clearState`.
 # from a checkout of deepdots-popup-mobile-native-sdk
 cp -R test-apps/maestro test-apps/scripts /tmp/nordly-flutter/
 grep -rl com.deepdots.testapp /tmp/nordly-flutter | xargs sed -i '' 's/com\.deepdots\.testapp/com.deepdots.flutterexample/g'
-DEVICE=<udid or serial> /tmp/nordly-flutter/scripts/run-maestro.sh ios 0.7.5 out/ios
+DEVICE=<udid or serial> /tmp/nordly-flutter/scripts/run-maestro.sh ios 0.7.6 out/ios
 ```
 
 30 Oct 2026, plugin on native 0.7.5: all flows pass on the iOS simulator (iPhone 17 Pro, iOS
 26.5) and the Android emulator (API 36), as on the native apps; `rate-product-close` is the
-known 0.7.5 issue (popup title on two lines hides the X), fixed in the native SDK after 0.7.5.
+known 0.7.5 issue (popup title on two lines hides the X).
+
+2 Nov 2026, plugin on native 0.7.6: `rate-product` and `rate-product-close` pass on the iOS
+simulator and the X shows next to a two-line title; the full suite runs in CI on both platforms.
