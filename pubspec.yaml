@@ -1,7 +1,8 @@
 name: deepdots_popups
-description: "A new Flutter plugin project."
-version: 0.0.1
-homepage:
+description: "Deepdots popups and surveys for Flutter apps, on top of the native Deepdots SDK for Android and iOS."
+version: 0.1.0-beta.1
+homepage: https://github.com/MagicFeedback/deepdots-popup-flutter-sdk
+publish_to: none # beta: installed from git (see INSTALL.md), not from pub.dev
 
 environment:
   sdk: ^3.13.5
