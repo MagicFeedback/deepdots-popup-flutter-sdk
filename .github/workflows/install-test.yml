@@ -24,6 +24,8 @@ concurrency:
 env:
   # Keep in sync with `environment:` in pubspec.yaml and the requirements in README/INSTALL.
   FLUTTER_MIN: "3.24.5"
+  # A git fetch that needs credentials fails instead of waiting for a prompt nobody answers.
+  GIT_TERMINAL_PROMPT: "0"
 
 jobs:
   install:

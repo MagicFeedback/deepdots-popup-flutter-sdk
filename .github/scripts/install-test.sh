@@ -88,6 +88,10 @@ case $platform in
     for f in ios/Flutter/Debug.xcconfig ios/Flutter/Release.xcconfig; do
       echo 'EXCLUDED_ARCHS[sdk=iphonesimulator*] = i386 x86_64' >> "$f"
     done
+    # Resolve the Swift packages first, with a time limit and the log: a stuck fetch shows here.
+    flutter build ios --config-only --simulator --debug
+    perl -e 'alarm 600; exec @ARGV' xcodebuild -resolvePackageDependencies -workspace ios/Runner.xcworkspace -scheme Runner \
+      || { echo "::error::Swift package resolution failed or took more than 10 minutes"; exit 1; }
     flutter build ios --simulator --debug
     flutter build ios --release --no-codesign
     grep -rq DeepdotsSDK-SPM ios/Runner.xcodeproj ios/Runner.xcworkspace 2>/dev/null \
