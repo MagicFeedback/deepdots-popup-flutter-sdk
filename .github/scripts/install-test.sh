@@ -27,8 +27,9 @@ case $source in
   git:*) dep=$(printf '    git:\n      url: %s\n      ref: %s' "$repo_url" "${source#git:}") ;;
   *) echo "::error::unknown plugin source $source"; exit 2 ;;
 esac
-# Under `dependencies:`, as a client would write it.
-awk -v dep="$dep" '{print} /^dependencies:/ {print "  deepdots_popups:"; print dep}' pubspec.yaml > pubspec.tmp
+# Under `dependencies:`, as a client would write it. Through the environment: the awk of macOS
+# does not take a value with newlines in `-v`.
+DEP="$dep" awk '{print} /^dependencies:/ {print "  deepdots_popups:"; print ENVIRON["DEP"]}' pubspec.yaml > pubspec.tmp
 mv pubspec.tmp pubspec.yaml
 cat > lib/main.dart <<'DART'
 import 'package:deepdots_popups/deepdots_popups.dart';
