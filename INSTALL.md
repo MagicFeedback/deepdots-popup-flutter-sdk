@@ -6,7 +6,7 @@ plugin exposes them to Dart and wires in Flutter's navigation and app lifecycle.
 
 | | |
 |---|---|
-| Plugin | `0.1.0-beta.1` |
+| Plugin | `0.1.0-beta.2` |
 | Native SDK | `0.7.6` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
 | Flutter | 3.24 or later (Dart 3.5). Build checked on every stable release from 3.24 to 3.47 |
 | Android | minSdk 24, compileSdk 36; Android Gradle plugin 8.9.1, Gradle 8.11.1, Kotlin 2.1 or later |
@@ -22,7 +22,7 @@ dependencies:
   deepdots_popups:
     git:
       url: https://github.com/MagicFeedback/deepdots-popup-flutter-sdk.git
-      ref: v0.1.0-beta.1
+      ref: v0.1.0-beta.2
 ```
 
 ```bash

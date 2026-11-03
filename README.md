@@ -21,7 +21,7 @@ dependencies:
   deepdots_popups:
     git:
       url: https://github.com/MagicFeedback/deepdots-popup-flutter-sdk.git
-      ref: v0.1.0-beta.1
+      ref: v0.1.0-beta.2
 ```
 
 On iOS, exclude the Intel simulator architecture (one line in two xcconfig files, or a few lines
