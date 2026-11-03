@@ -54,10 +54,11 @@ jobs:
             latest) echo "FLUTTER=" ;;
             *) echo "FLUTTER=${{ matrix.flutter }}.x" ;;
           esac >> "$GITHUB_ENV"
-      # The repository is private: `pub get` of a git dependency needs the job's token.
+      # The repository is private: `pub get` of a git dependency needs the job's token. Only for this
+      # repository: on every github.com URL, Xcode fetched DeepdotsSDK-SPM with it and hung.
       - name: Git credentials for the plugin repository
         if: startsWith(env.PLUGIN_SOURCE, 'git:')
-        run: git config --global url."https://x-access-token:${{ github.token }}@github.com/".insteadOf "https://github.com/"
+        run: git config --global url."https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}".insteadOf "https://github.com/${{ github.repository }}"
       - if: matrix.platform == 'android'
         uses: actions/setup-java@v4
         with:
