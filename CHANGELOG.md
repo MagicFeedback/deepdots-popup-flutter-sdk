@@ -1,4 +1,4 @@
-## Unreleased
+## 0.1.0-beta.2
 
 * Supports Flutter 3.24 or later (Dart 3.5); it required Flutter 3.47 before. Apps on AGP 8 now
   build: the plugin applies the Kotlin plugin itself when the Android Gradle plugin does not
