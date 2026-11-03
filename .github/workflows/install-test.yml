@@ -1,0 +1,75 @@
+# Install test: a new app from `flutter create` adds the plugin the way INSTALL.md says and builds
+# it in release (Android APK; iOS with Swift Package Manager and with CocoaPods, device and
+# simulator), on the oldest supported Flutter and on the latest stable.
+# - Pull requests and dev/main: the plugin from this checkout (`path:`).
+# - Tags v*: the plugin from the tag itself (`git:`), which is what clients install.
+name: Install test
+
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag or commit to install from git (empty: this checkout)"
+        type: string
+        default: ""
+
+concurrency:
+  group: install-test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep in sync with `environment:` in pubspec.yaml and the requirements in README/INSTALL.
+  FLUTTER_MIN: "3.24.5"
+
+jobs:
+  install:
+    name: ${{ matrix.platform }} · Flutter ${{ matrix.flutter }}
+    runs-on: ${{ matrix.platform == 'android' && 'ubuntu-latest' || 'macos-15' }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [android, ios-spm, ios-pods]
+        flutter: [min, latest]
+        exclude:
+          # Swift Package Manager support for this plugin needs Flutter 3.41 (FlutterFramework).
+          - platform: ios-spm
+            flutter: min
+        include:
+          - platform: ios-spm
+            flutter: "3.41"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Plugin source
+        run: |
+          ref="${{ github.event.inputs.ref }}"
+          if [ -z "$ref" ] && [ "${{ github.ref_type }}" = tag ]; then ref="${{ github.ref_name }}"; fi
+          if [ -n "$ref" ]; then echo "PLUGIN_SOURCE=git:$ref" >> "$GITHUB_ENV"; else echo "PLUGIN_SOURCE=path:$GITHUB_WORKSPACE" >> "$GITHUB_ENV"; fi
+          case "${{ matrix.flutter }}" in
+            min) echo "FLUTTER=$FLUTTER_MIN" ;;
+            latest) echo "FLUTTER=" ;;
+            *) echo "FLUTTER=${{ matrix.flutter }}.x" ;;
+          esac >> "$GITHUB_ENV"
+      # The repository is private: `pub get` of a git dependency needs the job's token.
+      - name: Git credentials for the plugin repository
+        if: startsWith(env.PLUGIN_SOURCE, 'git:')
+        run: git config --global url."https://x-access-token:${{ github.token }}@github.com/".insteadOf "https://github.com/"
+      - if: matrix.platform == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER }}
+          channel: stable
+          cache: true
+      # On the oldest Flutter, the app also needs the newer Android toolchain of INSTALL.md (AGP,
+      # Gradle): its template is older than what the native SDK's dependencies require.
+      - run: .github/scripts/install-test.sh ${{ matrix.platform }} "$PLUGIN_SOURCE"
+        env:
+          LEGACY_TOOLCHAIN: ${{ matrix.flutter == 'min' && '1' || '0' }}

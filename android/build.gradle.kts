@@ -26,6 +26,12 @@ plugins {
     id("com.android.library")
 }
 
+// AGP 9 compiles Kotlin on its own. Apps on AGP 8 (the template of Flutter before 3.41) need the
+// Kotlin plugin, as Flutter plugins applied it before.
+if (com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION.substringBefore('.').toInt() < 9) {
+    apply(plugin = "org.jetbrains.kotlin.android")
+}
+
 android {
     namespace = "com.deepdots.deepdots_popups"
 
@@ -66,10 +72,9 @@ android {
     }
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
-    }
+// Not the `kotlin {}` extension: it does not exist when the app's Kotlin plugin is applied late.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
 }
 
 dependencies {

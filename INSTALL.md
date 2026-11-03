@@ -8,9 +8,9 @@ plugin exposes them to Dart and wires in Flutter's navigation and app lifecycle.
 |---|---|
 | Plugin | `0.1.0-beta.1` |
 | Native SDK | `0.7.6` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
-| Tested with | Flutter 3.47.6 (Dart 3.13) |
-| Android | minSdk 24, compileSdk 36 |
-| iOS | 13.0 or later |
+| Flutter | 3.24 or later (Dart 3.5). Build checked on every stable release from 3.24 to 3.47 |
+| Android | minSdk 24, compileSdk 36; Android Gradle plugin 8.9.1, Gradle 8.11.1, Kotlin 2.1 or later |
+| iOS | 13.0 or later; Swift Package Manager needs Flutter 3.41 or later, CocoaPods works on all |
 
 ## 1. Add the dependency
 
@@ -35,14 +35,47 @@ Always pin `ref` to a tag. Updating is a matter of changing the tag.
 
 ### Android
 
-Nothing to add. The native SDK comes from Maven Central (`mavenCentral()` must be in your
-repositories, which it is in a default Flutter project), and the plugin declares the `INTERNET`
-permission. Any `Activity` works, including the default `FlutterActivity`.
+Apps created with Flutter 3.35 or later need nothing. The native SDK comes from Maven Central
+(`mavenCentral()` is in the repositories of a default Flutter project), the plugin declares the
+`INTERNET` permission, and any `Activity` works, including the default `FlutterActivity`.
+
+Apps created with an older Flutter (3.24 to 3.32) need a newer Android toolchain than their
+template, because of the libraries the native SDK uses. In `android/settings.gradle(.kts)`:
+
+```kotlin
+id("com.android.application") version "8.9.1" apply false       // or later
+id("org.jetbrains.kotlin.android") version "2.1.21" apply false  // 2.1 or later
+```
+
+In `android/gradle/wrapper/gradle-wrapper.properties`, Gradle 8.11.1 or later:
+
+```properties
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.11.1-all.zip
+```
+
+In `android/app/build.gradle(.kts)`, inside `android { ... }`:
+
+```kotlin
+compileSdk = 36
+defaultConfig {
+    minSdk = 24
+}
+```
+
+Without these, the build stops with a message that names the missing version (for example
+"requires Android Gradle plugin 8.9.1 or higher" or "compiled with an incompatible version of
+Kotlin").
 
 ### iOS
 
+The app must target iOS 13.0 or later. Apps created with Flutter 3.32 or earlier target 12.0:
+raise `IPHONEOS_DEPLOYMENT_TARGET` to 13.0 in Xcode (Runner target, General → Minimum
+Deployments) and, with CocoaPods, set `platform :ios, '13.0'` at the top of `ios/Podfile`.
+
 Flutter builds iOS plugins with Swift Package Manager when it is enabled, and with CocoaPods
-otherwise. Both work. The native SDK ships no `x86_64` simulator slice, so Intel
+otherwise. Both work; Swift Package Manager needs Flutter 3.41 or later. On an older Flutter with
+Swift Package Manager enabled, the build fails with "The folder FlutterFramework doesn't exist":
+turn it off with `flutter config --no-enable-swift-package-manager` and the app uses CocoaPods. The native SDK ships no `x86_64` simulator slice, so Intel
 simulator builds must be excluded:
 
 - **Swift Package Manager:** add this line at the end of both `ios/Flutter/Debug.xcconfig` and
@@ -135,5 +168,4 @@ setting in a release build.
 ## Known limitations of the beta
 
 - Installed from git only (not on pub.dev yet).
-- The plugin requires Dart 3.13 (Flutter 3.47) or later. Tell us if your app is on an older
-  Flutter version.
+- Flutter 3.24 to 3.32: the Android toolchain changes of step 2 are needed.
