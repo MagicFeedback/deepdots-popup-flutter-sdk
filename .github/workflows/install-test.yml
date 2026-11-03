@@ -2,7 +2,12 @@
 # it in release (Android APK; iOS with Swift Package Manager and with CocoaPods, device and
 # simulator), on the oldest supported Flutter and on the latest stable.
 # - Pull requests and dev/main: the plugin from this checkout (`path:`).
-# - Tags v*: the plugin from the tag itself (`git:`), which is what clients install.
+# - Tags v*: the plugin from the tag itself (`git:`), which is what clients install. Except Swift
+#   Package Manager, which takes the tag's checkout (`path:`, the same files): on GitHub's macOS
+#   runners Xcode (16.4 and 26.6) stalls resolving DeepdotsSDK-SPM whenever the plugin lives outside
+#   the job's checkout (pub cache, or a copy in $RUNNER_TEMP) until the job times out. On a Mac the
+#   same install from git works, with an empty SwiftPM cache too. Android and CocoaPods cover the
+#   git fetch.
 name: Install test
 
 on:
@@ -50,14 +55,15 @@ jobs:
         run: |
           ref="${{ github.event.inputs.ref }}"
           if [ -z "$ref" ] && [ "${{ github.ref_type }}" = tag ]; then ref="${{ github.ref_name }}"; fi
-          if [ -n "$ref" ]; then echo "PLUGIN_SOURCE=git:$ref" >> "$GITHUB_ENV"; else echo "PLUGIN_SOURCE=path:$GITHUB_WORKSPACE" >> "$GITHUB_ENV"; fi
+          # With a dispatched `ref`, Swift Package Manager still builds this checkout (see the header).
+          if [ -n "$ref" ] && [ "${{ matrix.platform }}" != ios-spm ]; then echo "PLUGIN_SOURCE=git:$ref" >> "$GITHUB_ENV"; else echo "PLUGIN_SOURCE=path:$GITHUB_WORKSPACE" >> "$GITHUB_ENV"; fi
           case "${{ matrix.flutter }}" in
             min) echo "FLUTTER=$FLUTTER_MIN" ;;
             latest) echo "FLUTTER=" ;;
             *) echo "FLUTTER=${{ matrix.flutter }}.x" ;;
           esac >> "$GITHUB_ENV"
       # The repository is private: `pub get` of a git dependency needs the job's token. Only for this
-      # repository: on every github.com URL, Xcode fetched DeepdotsSDK-SPM with it and hung.
+      # repository, which is the only one that needs it.
       - name: Git credentials for the plugin repository
         if: startsWith(env.PLUGIN_SOURCE, 'git:')
         run: git config --global url."https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}".insteadOf "https://github.com/${{ github.repository }}"
