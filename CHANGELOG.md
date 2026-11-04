@@ -1,3 +1,10 @@
+## Unreleased
+
+* Popup responses and analytics say they came from this plugin: `deepdots_sdk=flutter@<version>`
+  (and `deepdots_channel=popup` on responses), with the native SDK in `deepdots_sdk_core`. Needs
+  the native Deepdots SDK release that adds `SdkIdentity` (after 0.7.9). The version comes from
+  `lib/src/version.dart`, which a test keeps equal to `version:` in pubspec.yaml.
+
 ## 0.1.0-beta.2
 
 * Supports Flutter 3.24 or later (Dart 3.5); it required Flutter 3.47 before. Apps on AGP 8 now

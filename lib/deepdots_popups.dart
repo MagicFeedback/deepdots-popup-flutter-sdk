@@ -10,6 +10,8 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import 'src/version.dart';
+
 enum DeepdotsEnvironment { production, development }
 
 /// Evento del SDK nativo (`popup_shown`, `popup_clicked`, `survey_completed`).
@@ -116,6 +118,10 @@ class DeepdotsPopups {
       'renderChrome': renderChrome,
       'showProgressBar': showProgressBar,
       'metadata': metadata,
+      // El nativo lo declara como wrapper: `deepdots_sdk=flutter@<versión>` en respuestas y
+      // analítica, con el núcleo nativo en `deepdots_sdk_core`.
+      'sdkName': 'flutter',
+      'sdkVersion': deepdotsPopupsVersion,
     });
     // Ciclo de vida automático. `hide`/`show` (no `pause`/`resume`) porque en el SDK nativo
     // `onBackground()` es FIN DE SESIÓN: `inactive` es transitorio (llamada entrante, app

@@ -149,6 +149,8 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
     // `metadata` libre del host + `userId`, que gana. El SDK no admite valores nulos.
     var metadata = (args["metadata"] as? [String: Any])?.filter { !($0.value is NSNull) } ?? [:]
     if let userId = args["userId"] as? String { metadata["userId"] = userId }
+    // `deepdots_sdk=flutter@<versión>` (y el nativo en `deepdots_sdk_core`): antes de init.
+    SdkIdentity.shared.setWrapper(name: args["sdkName"] as? String ?? "flutter", version: args["sdkVersion"] as? String ?? "")
 
     // Kotlin no exporta los valores por defecto a Swift: hay que pasar todos los parámetros.
     let options = InitOptions(

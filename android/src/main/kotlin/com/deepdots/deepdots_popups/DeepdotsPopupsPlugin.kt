@@ -4,6 +4,7 @@ import android.app.Activity
 import android.os.Handler
 import android.os.Looper
 import com.deepdots.sdk.DeepdotsPopups
+import com.deepdots.sdk.SdkIdentity
 import com.deepdots.sdk.analytics.AnalyticsKeys
 import com.deepdots.sdk.models.Environment
 import com.deepdots.sdk.models.Event
@@ -158,6 +159,8 @@ class DeepdotsPopupsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val userId = call.argument<String>("userId")
         val analyticsPublicKey = call.argument<String>("analyticsPublicKey")
         val analyticsIntegration = call.argument<String>("analyticsIntegration")
+        // `deepdots_sdk=flutter@<versión>` (y el nativo en `deepdots_sdk_core`): antes de init.
+        SdkIdentity.setWrapper(call.argument<String>("sdkName") ?: "flutter", call.argument<String>("sdkVersion") ?: "")
         val options = InitOptions(
             debug = call.argument<Boolean>("debug") ?: false,
             environment = if (call.argument<String>("environment") == "development") Environment.Development else Environment.Production,
