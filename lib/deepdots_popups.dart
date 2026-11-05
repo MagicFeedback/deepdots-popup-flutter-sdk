@@ -6,11 +6,80 @@
 library;
 
 import 'dart:async';
+import 'dart:ui' show ErrorCallback, PlatformDispatcher;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 enum DeepdotsEnvironment { production, development }
+
+/// Señales que el plugin detecta solo, sin código del host. Todas activadas por defecto; cada una
+/// se apaga con su flag en [DeepdotsPopups.init]. Mismos nombres que `autoTrack` en los demás SDK
+/// de Deepdots (web, React Native, nativo).
+///
+/// ```dart
+/// await DeepdotsPopups.init(
+///   publicKey: '...',
+///   autoTrack: const DeepdotsAutoTrack(errors: false), // el resto sigue activado
+/// );
+/// ```
+@immutable
+class DeepdotsAutoTrack {
+  const DeepdotsAutoTrack({
+    this.lifecycle = true,
+    this.screens = true,
+    this.scroll = true,
+    this.clicks = true,
+    this.errors = true,
+  });
+
+  /// Todas las señales apagadas: el host lo llama todo a mano.
+  const DeepdotsAutoTrack.none()
+      : lifecycle = false,
+        screens = false,
+        scroll = false,
+        clicks = false,
+        errors = false;
+
+  /// Primer plano / segundo plano por `AppLifecycleListener` (inicio y fin de sesión). Con
+  /// `false` el host llama a `onForeground` / `onBackground` del SDK nativo por su cuenta.
+  final bool lifecycle;
+
+  /// Pantallas que reporta [DeepdotsNavigatorObserver]. Con `false` el observer no envía nada y
+  /// las pantallas entran solo por [DeepdotsPopups.setPath].
+  final bool screens;
+
+  /// Porcentaje de scroll que reporta [DeepdotsScrollListener]. Con `false` el listener no envía
+  /// nada y el scroll entra solo por [DeepdotsPopups.onScroll].
+  final bool scroll;
+
+  /// Reservado, por paridad con los demás SDK: en Flutter los clics no se detectan solos (no hay
+  /// selectores), siempre van por [DeepdotsPopups.triggerClick]. Hoy no cambia nada.
+  final bool clicks;
+
+  /// Errores de Dart no capturados: `FlutterError.onError` (errores del framework: build, layout,
+  /// gestos) y `PlatformDispatcher.instance.onError` (excepciones asíncronas sin `catch`). Los
+  /// handlers anteriores (Sentry, Crashlytics, el del host) siguen recibiéndolo todo. Con `false`
+  /// no se instala nada.
+  final bool errors;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DeepdotsAutoTrack &&
+      other.lifecycle == lifecycle &&
+      other.screens == screens &&
+      other.scroll == scroll &&
+      other.clicks == clicks &&
+      other.errors == errors;
+
+  @override
+  int get hashCode => Object.hash(lifecycle, screens, scroll, clicks, errors);
+
+  @override
+  String toString() =>
+      'DeepdotsAutoTrack(lifecycle: $lifecycle, screens: $screens, scroll: $scroll, clicks: $clicks, errors: $errors)';
+}
 
 /// Evento del SDK nativo (`popup_shown`, `popup_clicked`, `survey_completed`).
 class DeepdotsEvent {
@@ -62,6 +131,24 @@ class DeepdotsPopups {
   static AppLifecycleListener? _lifecycle;
   static bool _initialized = false;
   static String? _pendingPath;
+  static bool _pendingPathIsAuto = false;
+  static bool _debug = false;
+  static DeepdotsAutoTrack _autoTrack = const DeepdotsAutoTrack();
+
+  // Handlers de error automáticos (autoTrack.errors). Se guardan los anteriores para encadenar.
+  static bool _errorHandlersInstalled = false;
+  static FlutterExceptionHandler? _previousFlutterOnError;
+  static ErrorCallback? _previousPlatformOnError;
+
+  /// Errores ya reportados (por el handler automático o a mano), para no enviar dos veces el mismo
+  /// objeto de error: p. ej. un host que ya tenía `FlutterError.onError` llamando a
+  /// [reportError], al que el handler del plugin encadena.
+  static final List<(Object, DateTime)> _recentReports = [];
+  static const Duration _dedupeWindow = Duration(seconds: 5);
+  static const int _dedupeMaxEntries = 32;
+
+  /// Señales automáticas con las que se inicializó el SDK (las del primer [init]).
+  static DeepdotsAutoTrack get autoTrack => _autoTrack;
 
   /// Eventos de los popups, para analítica propia del host o para reaccionar en la UI.
   static Stream<DeepdotsEvent> get events => _events.stream;
@@ -86,6 +173,9 @@ class DeepdotsPopups {
   ///   [setContactAttributes].
   /// - [geolocation]: país/ciudad por IP en analytics (`false` no llama nunca a los servicios
   ///   de geolocalización).
+  /// - [autoTrack]: señales que el plugin detecta solo (ciclo de vida, pantallas, scroll,
+  ///   errores); todas activadas por defecto. Ver [DeepdotsAutoTrack]. Cuenta el del primer
+  ///   `init()`: una segunda llamada no lo cambia.
   static Future<void> init({
     required String publicKey,
     DeepdotsEnvironment environment = DeepdotsEnvironment.production,
@@ -100,7 +190,12 @@ class DeepdotsPopups {
     bool? renderChrome,
     bool? showProgressBar,
     Map<String, Object?>? metadata,
+    DeepdotsAutoTrack autoTrack = const DeepdotsAutoTrack(),
   }) async {
+    if (!_initialized) {
+      _autoTrack = autoTrack;
+      _debug = debug;
+    }
     _channel.setMethodCallHandler(_onNativeCall);
     await _channel.invokeMethod<void>('init', {
       'publicKey': publicKey,
@@ -121,13 +216,112 @@ class DeepdotsPopups {
     // `onBackground()` es FIN DE SESIÓN: `inactive` es transitorio (llamada entrante, app
     // switcher en iOS) y partiría la sesión en dos.
     _initialized = true;
+    if (_autoTrack.errors) _installErrorHandlers();
     final pending = _pendingPath;
+    final pendingIsAuto = _pendingPathIsAuto;
     _pendingPath = null;
-    if (pending != null) await setPath(pending);
-    _lifecycle ??= AppLifecycleListener(
-      onHide: () => _channel.invokeMethod<void>('onBackground'),
-      onShow: () => _channel.invokeMethod<void>('onForeground'),
-    );
+    _pendingPathIsAuto = false;
+    // La ruta inicial que guardó el observer antes de init() solo se envía si `screens` sigue on.
+    if (pending != null && (!pendingIsAuto || _autoTrack.screens)) await setPath(pending);
+    if (_autoTrack.lifecycle) {
+      _lifecycle ??= AppLifecycleListener(
+        onHide: () => _channel.invokeMethod<void>('onBackground'),
+        onShow: () => _channel.invokeMethod<void>('onForeground'),
+      );
+    }
+  }
+
+  /// Instala `FlutterError.onError` y `PlatformDispatcher.instance.onError` una sola vez,
+  /// encadenando siempre a los handlers que hubiera (Sentry, Crashlytics, el del host).
+  static void _installErrorHandlers() {
+    if (_errorHandlersInstalled) return;
+    _errorHandlersInstalled = true;
+
+    _previousFlutterOnError = FlutterError.onError;
+    FlutterError.onError = _onFlutterError;
+
+    _previousPlatformOnError = PlatformDispatcher.instance.onError;
+    PlatformDispatcher.instance.onError = _onPlatformError;
+    _log('autoTrack.errors: FlutterError.onError y PlatformDispatcher.onError instalados');
+  }
+
+  static void _onFlutterError(FlutterErrorDetails details) {
+    // `silent`: errores que el propio framework no enseña en release (p. ej. una imagen que no
+    // carga). Tampoco se reportan; el handler anterior sí los recibe.
+    if (!details.silent) {
+      _autoReport(details.exception, details.stack, severity: 'error', context: {
+        'dart_error_source': 'flutter_error',
+        if (details.library != null) 'dart_error_library': details.library,
+        if (details.context != null) 'dart_error_context': details.context!.toDescription(),
+      });
+    }
+    _previousFlutterOnError?.call(details);
+  }
+
+  static bool _onPlatformError(Object error, StackTrace stack) {
+    _autoReport(error, stack, severity: 'fatal', context: {'dart_error_source': 'platform_dispatcher'});
+    // Sin handler anterior se devuelve `false`: el engine sigue haciendo lo de siempre (lo
+    // imprime). Con handler anterior manda lo que diga él.
+    return _previousPlatformOnError?.call(error, stack) ?? false;
+  }
+
+  static void _autoReport(Object error, StackTrace? stack,
+      {required String severity, required Map<String, Object?> context}) {
+    if (_alreadyReported(error)) return;
+    // Un fallo del canal no puede acabar en otro error no capturado (bucle con onError).
+    _send(error, stackTrace: stack, severity: severity, handled: false, context: context)
+        .catchError((Object _) {});
+  }
+
+  /// `true` si este mismo objeto de error ya se reportó hace poco; si no, lo apunta.
+  static bool _alreadyReported(Object error) {
+    final now = DateTime.now();
+    _recentReports.removeWhere((e) => now.difference(e.$2) > _dedupeWindow);
+    if (_recentReports.any((e) => identical(e.$1, error))) {
+      _log('reportError: ${error.runtimeType} ya reportado, se ignora el duplicado');
+      return true;
+    }
+    _recentReports.add((error, now));
+    if (_recentReports.length > _dedupeMaxEntries) _recentReports.removeAt(0);
+    return false;
+  }
+
+  static void _log(String message) {
+    if (_debug) debugPrint('[DeepdotsPopups] $message');
+  }
+
+  /// Deja el estado estático como antes del primer [init]: quita los handlers de error (si
+  /// nadie los ha sustituido después) y el listener de ciclo de vida. Solo para tests.
+  @visibleForTesting
+  static void debugReset() {
+    if (_errorHandlersInstalled) {
+      if (FlutterError.onError == _onFlutterError) FlutterError.onError = _previousFlutterOnError;
+      if (PlatformDispatcher.instance.onError == _onPlatformError) {
+        PlatformDispatcher.instance.onError = _previousPlatformOnError;
+      }
+    }
+    _errorHandlersInstalled = false;
+    _previousFlutterOnError = null;
+    _previousPlatformOnError = null;
+    _recentReports.clear();
+    _lifecycle?.dispose();
+    _lifecycle = null;
+    _initialized = false;
+    _pendingPath = null;
+    _pendingPathIsAuto = false;
+    _debug = false;
+    _autoTrack = const DeepdotsAutoTrack();
+  }
+
+  /// Ruta que llega de [DeepdotsNavigatorObserver]: respeta `autoTrack.screens`.
+  static void _autoSetPath(String path) {
+    if (!_initialized) {
+      _pendingPath = path;
+      _pendingPathIsAuto = true;
+      return;
+    }
+    if (!_autoTrack.screens) return;
+    setPath(path);
   }
 
   /// Pantalla actual. Alimenta los triggers por ruta/tiempo y el `page_view` de analytics.
@@ -136,6 +330,7 @@ class DeepdotsPopups {
   static Future<void> setPath(String path) async {
     if (!_initialized) {
       _pendingPath = path;
+      _pendingPathIsAuto = false;
       return;
     }
     await _channel.invokeMethod<void>('setPath', {'path': path});
@@ -209,9 +404,13 @@ class DeepdotsPopups {
   static Future<void> setMetric(String key, Object? value) =>
       _channel.invokeMethod('setMetric', {'key': key, 'value': value});
 
-  /// Reporta un error de la app (evento `deepdots_app_crash`). Pensado para
-  /// `FlutterError.onError` y `PlatformDispatcher.instance.onError`. `severity: 'fatal'` lo
-  /// marca como fatal. Nativo: `reportError(error, severity, handled, context)`, que recibe un
+  /// Reporta un error de la app (evento `deepdots_app_crash`). `severity: 'fatal'` lo marca
+  /// como fatal.
+  ///
+  /// Los errores no capturados ya llegan solos (`autoTrack.errors`); esto queda para los errores
+  /// que el host captura y quiere reportar igual. Si el host ya llamaba a `reportError` desde su
+  /// propio `FlutterError.onError` o `PlatformDispatcher.onError`, no hay duplicados: el mismo
+  /// objeto de error se envía una sola vez (ventana de 5 s). Nativo: `reportError(error, severity, handled, context)`, que recibe un
   /// `Throwable`: el puente lo construye con el texto del error, y el tipo de Dart viaja en
   /// `context` como `dart_error_type` (el `crash_type` nativo es el de la clase del puente).
   static Future<void> reportError(
@@ -219,6 +418,17 @@ class DeepdotsPopups {
     StackTrace? stackTrace,
     String severity = 'error',
     bool handled = true,
+    Map<String, Object?>? context,
+  }) async {
+    if (_alreadyReported(error)) return;
+    await _send(error, stackTrace: stackTrace, severity: severity, handled: handled, context: context);
+  }
+
+  static Future<void> _send(
+    Object error, {
+    StackTrace? stackTrace,
+    required String severity,
+    required bool handled,
     Map<String, Object?>? context,
   }) =>
       _channel.invokeMethod('reportError', {
@@ -370,7 +580,7 @@ class DeepdotsPopups {
 class DeepdotsNavigatorObserver extends NavigatorObserver {
   void _report(Route<dynamic>? route) {
     final name = route?.settings.name;
-    if (route is PageRoute && name != null) DeepdotsPopups.setPath(name);
+    if (route is PageRoute && name != null) DeepdotsPopups._autoSetPath(name);
   }
 
   @override
@@ -417,7 +627,7 @@ class _DeepdotsScrollListenerState extends State<DeepdotsScrollListener> {
     // Se acota a 0-100: el rebote (overscroll) de iOS lleva `pixels` fuera del rango.
     final pct = ((metrics.pixels - metrics.minScrollExtent) / range * 100).round().clamp(0, 100);
     // Antes de init() no se envía ni se apunta, para no perder el valor cuando ya se pueda enviar.
-    if (pct == _lastReported || !DeepdotsPopups._initialized) return false;
+    if (pct == _lastReported || !DeepdotsPopups._initialized || !DeepdotsPopups._autoTrack.scroll) return false;
     _lastReported = pct;
     DeepdotsPopups.onScroll(pct);
     return false; // deja que la notificación siga subiendo
