@@ -7,7 +7,7 @@ Plugin de Flutter que envuelve el SDK nativo de Deepdots (KMP, repo
 `deepdots-popup-mobile-native-sdk`) para Android e iOS. No reimplementa lógica: la API de Dart
 traduce cada llamada a `DeepdotsPopups` nativo por un `MethodChannel` y reenvía sus eventos.
 
-**Estado: beta (MF-3270).** Usa el SDK nativo **0.7.9** publicado: Maven Central
+**Estado: release 1.0.0 (DD-21, antes MF-3270).** Usa el SDK nativo **0.7.9** publicado: Maven Central
 (`com.deepdots.sdk:shared-android`) en Android y el paquete `MagicFeedback/DeepdotsSDK-SPM` en iOS
 (SPM, o con CocoaPods el podspec descarga el mismo XCFramework y comprueba su sha256). La versión
 nativa se cambia en `android/build.gradle.kts`, `ios/deepdots_popups/Package.swift` y
@@ -137,6 +137,12 @@ Abiertos (revisados el 2026-11-05 contra el nativo 0.7.9):
    `context`, porque desde Swift no se puede fijar el stack de un `KotlinThrowable`).
 4. **`setLanguage`:** solo cambia los textos del chrome a partir del siguiente popup; el idioma
    de analytics se fija en `init()`.
+5. **Diálogos de Flutter:** el nativo solo retiene el popup ante diálogos nativos
+   (`UIAlertController` en iOS; otra ventana con el foco en Android). Un `showDialog` de Flutter se
+   pinta dentro de la vista de Flutter y el SDK no lo ve: un popup por tiempo sale encima (flow
+   `lemu/09-dialog-at-start`; en Android pasa en falso porque Maestro ve el diálogo a través del
+   popup). Workaround documentado: `init()` tras el consentimiento. Arreglo real: una API nativa para
+   avisar de un overlay del host (release combinada 0.7.10).
 
 ## Ejecutar el ejemplo
 

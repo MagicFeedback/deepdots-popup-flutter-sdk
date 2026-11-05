@@ -1,4 +1,8 @@
-## Unreleased
+## 1.0.0
+
+First release (no longer a beta). Same Dart API as 0.1.0-beta.2; install it with `ref: v1.0.0`.
+
+* Known limitation: a Flutter dialog does not hold a popup back (README, Known limitations).
 
 * Native Deepdots SDK 0.7.9 (was 0.7.6). Fixes that reach Flutter apps:
   * iOS: a popup triggered right after launch is shown (it was counted as shown but not

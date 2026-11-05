@@ -31,7 +31,7 @@ end
 
 Pod::Spec.new do |s|
   s.name             = 'deepdots_popups'
-  s.version          = '0.1.0-beta.2'
+  s.version          = '1.0.0'
   s.summary          = 'Deepdots popups for Flutter, on top of the native Deepdots SDK.'
   s.description      = 'Flutter plugin that wraps the native Deepdots popup SDK (Android and iOS).'
   s.homepage         = 'https://github.com/MagicFeedback/deepdots-popup-flutter-sdk'

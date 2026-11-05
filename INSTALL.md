@@ -1,4 +1,4 @@
-# deepdots_popups — install guide (beta)
+# deepdots_popups — install guide
 
 Flutter plugin for Deepdots popups and surveys. It wraps the native Deepdots SDK for Android and
 iOS: targeting, triggers, sessions, analytics and the survey UI all run in the native SDK, and the
@@ -6,7 +6,7 @@ plugin exposes them to Dart and wires in Flutter's navigation and app lifecycle.
 
 | | |
 |---|---|
-| Plugin | `0.1.0-beta.2` |
+| Plugin | `1.0.0` |
 | Native SDK | `0.7.9` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
 | Flutter | 3.24 or later (Dart 3.5). Build checked on every stable release from 3.24 to 3.47 |
 | Android | minSdk 24, compileSdk 36; Android Gradle plugin 8.9.1, Gradle 8.11.1, Kotlin 2.1 or later |
@@ -14,7 +14,7 @@ plugin exposes them to Dart and wires in Flutter's navigation and app lifecycle.
 
 ## 1. Add the dependency
 
-The beta is installed from git, pinned to a release tag:
+The plugin is installed from git, pinned to a release tag:
 
 ```yaml
 # pubspec.yaml
@@ -22,7 +22,7 @@ dependencies:
   deepdots_popups:
     git:
       url: https://github.com/MagicFeedback/deepdots-popup-flutter-sdk.git
-      ref: v0.1.0-beta.2
+      ref: v1.0.0
 ```
 
 ```bash
@@ -165,7 +165,11 @@ setting in a release build.
 - **`PlatformException(no_context)`** from `show`, `showByPopupId`, `triggerSurvey` or `close`:
   the call happened before the app had a visible screen. Call it after the first frame.
 
-## Known limitations of the beta
+## Known limitations
 
+- A dialog or bottom sheet drawn by Flutter (`showDialog`, `showModalBottomSheet`) does not hold a
+  popup back: the native SDK waits only for native dialogs, so a popup on a timer (for example 5 s
+  after launch) can open over your own consent dialog. If your app asks for consent at start, call
+  `DeepdotsPopups.init()` after the user answers it.
 - Installed from git only (not on pub.dev yet).
 - Flutter 3.24 to 3.32: the Android toolchain changes of step 2 are needed.
