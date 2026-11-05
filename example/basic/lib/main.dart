@@ -12,7 +12,8 @@ const nativeSdkVersion = '0.7.9';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await DeepdotsPopups.init(publicKey: publicKey, environment: DeepdotsEnvironment.development);
+  // debug: SDK log lines in logcat / the Xcode console, as in the example app.
+  await DeepdotsPopups.init(publicKey: publicKey, environment: DeepdotsEnvironment.development, debug: true);
   runApp(const BasicApp());
 }
 
@@ -27,9 +28,7 @@ class BasicApp extends StatelessWidget {
     initialRoute: '/',
     routes: {
       '/': (_) => const Scaffold(
-        body: Center(
-          child: Text('Basic app · SDK $nativeSdkVersion · Flutter', style: TextStyle(fontSize: 20)),
-        ),
+        body: Center(child: Text('Basic app · SDK $nativeSdkVersion · Flutter', style: TextStyle(fontSize: 20))),
       ),
     },
   );
