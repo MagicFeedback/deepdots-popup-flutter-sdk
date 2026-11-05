@@ -104,6 +104,18 @@ class _LabPanelState extends State<LabPanel> {
             identifier: 'lab-rapid-checkout',
             child: ListTile(title: const Text('Rapid nav: cart ⇄ checkout ×3'), onTap: widget.onRapidCheckout),
           ),
+          // autoTrack.errors: an async error nobody catches. The plugin reports it on its own
+          // (PlatformDispatcher.onError); the app has no reportError call.
+          Semantics(
+            identifier: 'lab-throw-error',
+            child: ListTile(
+              title: const Text('Throw an uncaught Dart error'),
+              onTap: () {
+                Lab.log('host', 'throw StateError (uncaught)');
+                Future<void>(() => throw StateError('Lab: uncaught Dart error'));
+              },
+            ),
+          ),
           if (events.isNotEmpty) ...[
             const _Header('Host events'),
             for (final e in events) ...[

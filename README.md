@@ -51,8 +51,32 @@ DeepdotsPopups.triggerClick('help-button');
 DeepdotsPopups.events.listen((e) => print(e.type)); // popup_shown, popup_clicked, survey_completed
 ```
 
-The app lifecycle (foreground and background) is handled by the plugin. Scroll triggers need the
-scrollable body wrapped in `DeepdotsScrollListener`.
+The app lifecycle (foreground and background) and uncaught Dart errors are handled by the plugin.
+Scroll triggers need the scrollable body wrapped in `DeepdotsScrollListener`.
+
+## Automatic tracking
+
+After `init()` the plugin picks up these signals with no extra code. Each one can be turned off:
+
+```dart
+await DeepdotsPopups.init(
+  publicKey: '<your public key>',
+  autoTrack: const DeepdotsAutoTrack(errors: false), // the others stay on
+);
+```
+
+| Flag | What the plugin does | With `false` |
+|---|---|---|
+| `lifecycle` | Session start and end from `AppLifecycleListener`. | Nothing; call the native lifecycle yourself. |
+| `screens` | `DeepdotsNavigatorObserver` reports named routes. | The observer sends nothing; use `setPath()`. |
+| `scroll` | `DeepdotsScrollListener` reports scroll depth. | The listener sends nothing; use `onScroll()`. |
+| `errors` | Reports uncaught Dart errors (`FlutterError.onError` and `PlatformDispatcher.instance.onError`). | No error handler is installed. |
+| `clicks` | Same name as in the other Deepdots SDKs. Flutter has no automatic clicks: use `triggerClick()`. | No change. |
+
+Errors: the plugin installs its handlers once, in the first `init()`, and always calls the handlers
+that were set before (Sentry, Crashlytics, your own), so they keep receiving every error. Call
+`init()` after those tools are set up. If your handlers already call `DeepdotsPopups.reportError`,
+the same error is sent only once. `reportError` stays for errors you catch yourself.
 
 ## API
 
@@ -64,6 +88,7 @@ scrollable body wrapped in `DeepdotsScrollListener`.
 | `triggerSurvey(surveyId)` | Shows a survey's popup, respecting targeting and cooldown. |
 | `show(surveyId, productId)` / `showByPopupId(id)` | Shows a popup right away, without triggers or targeting. |
 | `close()` | Closes the popup on screen. |
+| `reportError(error, stackTrace:)` | Reports an error you caught. Uncaught errors are reported on their own. |
 | `setUserId(id)` / `setLanguage(code)` / `setTrackingEnabled(on)` | Identity, language of the next popup and consent. |
 | `track(name, params)`, `setMetric`, `trackFunnelStep`, `trackSearch`, … | Product analytics events, sent with the user's session. |
 | `events` | Stream of `DeepdotsEvent` (`popup_shown`, `popup_clicked`, `survey_completed`). |

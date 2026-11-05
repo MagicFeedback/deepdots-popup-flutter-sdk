@@ -1,3 +1,19 @@
+## Unreleased
+
+* Uncaught Dart errors reach Deepdots with no host code. `init()` installs `FlutterError.onError`
+  (framework errors, reported as `error`) and `PlatformDispatcher.instance.onError` (uncaught
+  async errors, reported as `fatal`), both with `handled: false`. It installs them once and always
+  calls the handlers that were there before, so Sentry, Crashlytics or your own handler keep
+  receiving every error. Errors marked `silent` by Flutter are not reported.
+* New `autoTrack` option in `init()`: `DeepdotsAutoTrack(lifecycle:, screens:, scroll:, clicks:,
+  errors:)`, all `true` by default, same names as in the other Deepdots SDKs. `errors: false`
+  installs no error handler, `lifecycle: false` adds no `AppLifecycleListener`, `screens: false`
+  makes `DeepdotsNavigatorObserver` send nothing and `scroll: false` does the same for
+  `DeepdotsScrollListener`. Manual `setPath()` and `onScroll()` keep working. `clicks` changes
+  nothing in Flutter: clicks always go through `triggerClick()`.
+* No duplicates if you already call `reportError()` from your own error handlers: the same error
+  object is sent once (5 s window).
+
 ## 1.0.0
 
 First release (no longer a beta). Same Dart API as 0.1.0-beta.2; install it with `ref: v1.0.0`.

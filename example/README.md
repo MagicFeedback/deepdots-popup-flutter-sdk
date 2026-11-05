@@ -23,6 +23,8 @@ against it unchanged (only the `appId` differs).
   **Product › Rate › Submit rating** fires `rate_product`, **Account › Help** fires the click
   trigger `help-button`, the Shop list reports scroll with `DeepdotsScrollListener`.
 - App lifecycle: nothing to do, the plugin calls `onBackground()` / `onForeground()` itself.
+- Uncaught Dart errors: nothing to do, the plugin reports them itself (`autoTrack.errors`).
+  **Lab › Throw an uncaught Dart error** throws one to check it.
 
 ## Run
 
