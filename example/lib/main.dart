@@ -314,66 +314,70 @@ class _LabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const style = TextStyle(fontSize: 12, color: labText);
-    return Semantics(
-      container: true,
-      explicitChildNodes: true,
-      child: Container(
-        color: labBg,
-        padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top, left: 12),
-        child: SizedBox(
-          height: 40,
-          child: Row(
-            children: [
-              const Text(
-                'SDK Lab',
-                style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(width: 8),
-              Semantics(
-                identifier: 'lab-sdk-version',
-                container: true,
-                child: const Text('$nativeSdkVersion · Flutter', style: style),
-              ),
-              const SizedBox(width: 8),
-              Semantics(
-                identifier: 'lab-env',
-                container: true,
-                child: const Text('DEV', style: TextStyle(fontSize: 12, color: Color(0xFF6EE8A8))),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Semantics(
-                  identifier: 'lab-scenario',
+    // Test chrome, not app UI: fixed text size, so large system text (flows with `text-size:
+    // large`) does not push the ids out of the bar.
+    return MediaQuery.withNoTextScaling(
+      child: Semantics(
+        container: true,
+        explicitChildNodes: true,
+        child: Container(
+          color: labBg,
+          padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top, left: 12),
+          child: SizedBox(
+            height: 40,
+            child: Row(
+              children: [
+                const Text(
+                  'SDK Lab',
+                  style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Semantics(
+                  identifier: 'lab-sdk-version',
                   container: true,
-                  child: Text(
-                    host.config.scenario,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF9E9E9E)),
+                  child: const Text('$nativeSdkVersion · Flutter', style: style),
+                ),
+                const SizedBox(width: 8),
+                Semantics(
+                  identifier: 'lab-env',
+                  container: true,
+                  child: const Text('DEV', style: TextStyle(fontSize: 12, color: Color(0xFF6EE8A8))),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Semantics(
+                    identifier: 'lab-scenario',
+                    container: true,
+                    child: Text(
+                      host.config.scenario,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF9E9E9E)),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Semantics(
-                identifier: 'lab-counts',
-                container: true,
-                child: ListenableBuilder(
-                  listenable: Listenable.merge([Lab.shown, Lab.completed]),
-                  builder: (_, _) => Text('shown ${Lab.shown.value} · done ${Lab.completed.value}', style: style),
+                const SizedBox(width: 8),
+                Semantics(
+                  identifier: 'lab-counts',
+                  container: true,
+                  child: ListenableBuilder(
+                    listenable: Listenable.merge([Lab.shown, Lab.completed]),
+                    builder: (_, _) => Text('shown ${Lab.shown.value} · done ${Lab.completed.value}', style: style),
+                  ),
                 ),
-              ),
-              const Spacer(),
-              Semantics(
-                identifier: 'lab-open',
-                container: true,
-                // A label, not a tooltip: the Lab bar sits above the Navigator, with no Overlay.
-                label: 'Open SDK Lab',
-                child: IconButton(
-                  onPressed: onOpen,
-                  icon: const Icon(Icons.settings, color: labText, size: 20),
+                const Spacer(),
+                Semantics(
+                  identifier: 'lab-open',
+                  container: true,
+                  // A label, not a tooltip: the Lab bar sits above the Navigator, with no Overlay.
+                  label: 'Open SDK Lab',
+                  child: IconButton(
+                    onPressed: onOpen,
+                    icon: const Icon(Icons.settings, color: labText, size: 20),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
