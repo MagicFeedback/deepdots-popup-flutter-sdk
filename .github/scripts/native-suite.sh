@@ -19,7 +19,10 @@ curl -fsSL "https://codeload.github.com/$NATIVE_REPO/tar.gz/$NATIVE_TEST_APPS_RE
 cp -R native-suite/src/*/test-apps/maestro native-suite/src/*/test-apps/scripts native-suite/
 rm -rf native-suite/src
 # Same flows, other app: the example's app id, and its iOS process for the device log.
-grep -rl com.deepdots.testapp native-suite | xargs sed -i.bak 's/com\.deepdots\.testapp/com.deepdots.flutterexample/g'
+grep -rlE 'com\.deepdots\.(testapp|basicapp)' native-suite | xargs sed -i.bak -e 's/com\.deepdots\.testapp/com.deepdots.flutterexample/g' -e 's/com\.deepdots\.basicapp/com.deepdots.flutterbasic/g'
 sed -i.bak 's/process == "NordlyTestApp"/process == "Runner"/' native-suite/scripts/run-maestro.sh
 find native-suite -name '*.bak' -delete
+# CI runs the quick set (flows + failures); the full suite (regression, lemu, basic, e2e) runs on a
+# local device matrix before a release (doc/development.md).
+echo "FLOWS=$(cd native-suite/maestro && echo flows/*.yaml failures/*.yaml)" >> "${GITHUB_ENV:-/dev/null}"
 echo "[lab] native suite $NATIVE_REPO@$NATIVE_TEST_APPS_REF: $(ls native-suite/maestro/flows native-suite/maestro/failures | grep -c yaml) flows"
