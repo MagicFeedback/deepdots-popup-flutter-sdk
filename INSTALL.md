@@ -167,5 +167,9 @@ setting in a release build.
 
 ## Known limitations
 
+- A dialog or bottom sheet drawn by Flutter (`showDialog`, `showModalBottomSheet`) does not hold a
+  popup back: the native SDK waits only for native dialogs, so a popup on a timer (for example 5 s
+  after launch) can open over your own consent dialog. If your app asks for consent at start, call
+  `DeepdotsPopups.init()` after the user answers it.
 - Installed from git only (not on pub.dev yet).
 - Flutter 3.24 to 3.32: the Android toolchain changes of step 2 are needed.

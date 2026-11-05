@@ -137,6 +137,12 @@ Abiertos (revisados el 2026-11-05 contra el nativo 0.7.9):
    `context`, porque desde Swift no se puede fijar el stack de un `KotlinThrowable`).
 4. **`setLanguage`:** solo cambia los textos del chrome a partir del siguiente popup; el idioma
    de analytics se fija en `init()`.
+5. **Diálogos de Flutter:** el nativo solo retiene el popup ante diálogos nativos
+   (`UIAlertController` en iOS; otra ventana con el foco en Android). Un `showDialog` de Flutter se
+   pinta dentro de la vista de Flutter y el SDK no lo ve: un popup por tiempo sale encima (flow
+   `lemu/09-dialog-at-start`; en Android pasa en falso porque Maestro ve el diálogo a través del
+   popup). Workaround documentado: `init()` tras el consentimiento. Arreglo real: una API nativa para
+   avisar de un overlay del host (release combinada 0.7.10).
 
 ## Ejecutar el ejemplo
 

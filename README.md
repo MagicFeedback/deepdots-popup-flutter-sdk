@@ -70,6 +70,10 @@ scrollable body wrapped in `DeepdotsScrollListener`.
 
 ## Known limitations
 
+- A dialog or bottom sheet drawn by Flutter (`showDialog`, `showModalBottomSheet`) does not hold a
+  popup back: the native SDK waits only for native dialogs, so a popup on a timer (for example 5 s
+  after launch) can open over your own consent dialog. If your app asks for consent at start, call
+  `DeepdotsPopups.init()` after the user answers it.
 - `setLanguage` changes the texts from the next popup on. The language of analytics is set in
   `init()`.
 
