@@ -17,7 +17,8 @@ import 'shop.dart';
 //
 // Launch arguments (Maestro `launchApp: arguments`, `adb shell am start --es`, `-key value` on iOS)
 // override the saved run: scenario, nav (history|silent), lang, load (immediate|consent), user,
-// start (home|shop|cart|checkout|account).
+// start (home|shop|cart|checkout|account); one-shot: consent (all|necessary), instances (1|2),
+// event (fired right after the first setPath).
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,24 +48,71 @@ class SdkHost {
       switch (e.type) {
         case 'popup_shown':
           Lab.log('popup', 'shown id=${e.popupId} survey=${e.surveyId}');
+          Lab.shown.value++;
         case 'popup_clicked':
           Lab.log('popup', 'clicked id=${e.popupId} action=${e.extra['action'] ?? ''}');
         case 'survey_completed':
           Lab.log('popup', 'survey_completed survey=${e.surveyId}');
+          Lab.completed.value++;
       }
     });
-    await DeepdotsPopups.init(
-      publicKey: publicKey,
-      environment: DeepdotsEnvironment.development,
-      userId: c.user.isEmpty ? null : c.user,
-      language: c.lang,
-      debug: true,
-    );
+    final first = _initSdk();
+    if (c.instances == '2') {
+      Lab.log('sdk', 'second init (same options)');
+      await Future.wait([first, _initSdk()]);
+    } else {
+      await first;
+    }
     Lab.log('sdk', 'userId=${await DeepdotsPopups.getUserId() ?? '-'}');
+    // The route's setPath() reported before init() was sent by the plugin when init() finished,
+    // so this is right after the first setPath(), usually before the popups have loaded.
+    if (c.startEvent.isNotEmpty && c.nav != 'silent') {
+      Lab.log('host', 'triggerEvent(${c.startEvent}) right after the first setPath');
+      await DeepdotsPopups.triggerEvent(c.startEvent);
+    }
+  }
+
+  Future<void> _initSdk() => DeepdotsPopups.init(
+    publicKey: publicKey,
+    environment: DeepdotsEnvironment.development,
+    userId: config.user.isEmpty ? null : config.user,
+    language: config.lang,
+    debug: true,
+  );
+
+  /// A host that calls init() again (e.g. from a second entry point): the SDK must ignore it.
+  Future<void> initAgain() async {
+    if (!initialized.value) return;
+    Lab.log('sdk', 'init again (same options)');
+    await _initSdk();
   }
 
   void triggerEvent(String name) {
     if (initialized.value) DeepdotsPopups.triggerEvent(name);
+  }
+
+  /// A Lab host event. `scroll:NN` is the host reporting how far the screen is scrolled.
+  void hostEvent(String name) {
+    final pct = name.startsWith('scroll:') ? int.tryParse(name.substring(7)) : null;
+    if (pct != null) {
+      Lab.log('host', 'onScroll($pct)');
+      if (initialized.value) DeepdotsPopups.onScroll(pct);
+    } else {
+      Lab.log('host', 'triggerEvent($name)');
+      triggerEvent(name);
+    }
+  }
+
+  /// Duplicate and concurrent triggers: the same event twice in a row (a double tap) and once
+  /// more 3 s later, while its popup is open. The SDK must show the popup once.
+  void burst(String name) {
+    Lab.log('host', 'triggerEvent($name) x2 now + 1 in 3 s');
+    triggerEvent(name);
+    triggerEvent(name);
+    Future<void>.delayed(const Duration(seconds: 3), () {
+      Lab.log('host', 'triggerEvent($name) again (popup open)');
+      triggerEvent(name);
+    });
   }
 
   void triggerClick(String id) {
@@ -187,6 +235,21 @@ class _NordlyAppState extends State<NordlyApp> {
     );
   }
 
+  /// Rapid navigation (faster than Maestro can tap): Cart → Checkout → Cart, three times, 250 ms
+  /// per screen, ending on Cart.
+  Future<void> _rapidCheckout() async {
+    Lab.log('host', 'rapid nav: cart ⇄ checkout x3');
+    final nav = _navigator.currentState;
+    if (nav == null) return;
+    nav.pushNamedAndRemoveUntil('/cart', (_) => false);
+    for (var i = 0; i < 3; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      nav.pushNamed('/checkout');
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      nav.pop();
+    }
+  }
+
   void _openLab() {
     _navigator.currentState?.push(
       MaterialPageRoute<void>(
@@ -195,8 +258,19 @@ class _NordlyAppState extends State<NordlyApp> {
           host: widget.host,
           onEvent: (event) {
             _navigator.currentState?.pop();
-            Lab.log('host', 'triggerEvent($event)');
-            widget.host.triggerEvent(event);
+            widget.host.hostEvent(event);
+          },
+          onBurst: (event) {
+            _navigator.currentState?.pop();
+            widget.host.burst(event);
+          },
+          onInitAgain: () {
+            _navigator.currentState?.pop();
+            widget.host.initAgain();
+          },
+          onRapidCheckout: () {
+            _navigator.currentState?.pop();
+            _rapidCheckout();
           },
         ),
       ),
@@ -240,57 +314,70 @@ class _LabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const style = TextStyle(fontSize: 12, color: labText);
-    return Semantics(
-      container: true,
-      explicitChildNodes: true,
-      child: Container(
-        color: labBg,
-        padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top, left: 12),
-        child: SizedBox(
-          height: 40,
-          child: Row(
-            children: [
-              const Text(
-                'SDK Lab',
-                style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(width: 8),
-              Semantics(
-                identifier: 'lab-sdk-version',
-                container: true,
-                child: const Text('$nativeSdkVersion · Flutter', style: style),
-              ),
-              const SizedBox(width: 8),
-              Semantics(
-                identifier: 'lab-env',
-                container: true,
-                child: const Text('DEV', style: TextStyle(fontSize: 12, color: Color(0xFF6EE8A8))),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Semantics(
-                  identifier: 'lab-scenario',
+    // Test chrome, not app UI: fixed text size, so large system text (flows with `text-size:
+    // large`) does not push the ids out of the bar.
+    return MediaQuery.withNoTextScaling(
+      child: Semantics(
+        container: true,
+        explicitChildNodes: true,
+        child: Container(
+          color: labBg,
+          padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top, left: 12),
+          child: SizedBox(
+            height: 40,
+            child: Row(
+              children: [
+                const Text(
+                  'SDK Lab',
+                  style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Semantics(
+                  identifier: 'lab-sdk-version',
                   container: true,
-                  child: Text(
-                    host.config.scenario,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF9E9E9E)),
+                  child: const Text('$nativeSdkVersion · Flutter', style: style),
+                ),
+                const SizedBox(width: 8),
+                Semantics(
+                  identifier: 'lab-env',
+                  container: true,
+                  child: const Text('DEV', style: TextStyle(fontSize: 12, color: Color(0xFF6EE8A8))),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Semantics(
+                    identifier: 'lab-scenario',
+                    container: true,
+                    child: Text(
+                      host.config.scenario,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF9E9E9E)),
+                    ),
                   ),
                 ),
-              ),
-              const Spacer(),
-              Semantics(
-                identifier: 'lab-open',
-                container: true,
-                // A label, not a tooltip: the Lab bar sits above the Navigator, with no Overlay.
-                label: 'Open SDK Lab',
-                child: IconButton(
-                  onPressed: onOpen,
-                  icon: const Icon(Icons.settings, color: labText, size: 20),
+                const SizedBox(width: 8),
+                Semantics(
+                  identifier: 'lab-counts',
+                  container: true,
+                  child: ListenableBuilder(
+                    listenable: Listenable.merge([Lab.shown, Lab.completed]),
+                    builder: (_, _) => Text('shown ${Lab.shown.value} · done ${Lab.completed.value}', style: style),
+                  ),
                 ),
-              ),
-            ],
+                const Spacer(),
+                Semantics(
+                  identifier: 'lab-open',
+                  container: true,
+                  // A label, not a tooltip: the Lab bar sits above the Navigator, with no Overlay.
+                  label: 'Open SDK Lab',
+                  child: IconButton(
+                    onPressed: onOpen,
+                    icon: const Icon(Icons.settings, color: labText, size: 20),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

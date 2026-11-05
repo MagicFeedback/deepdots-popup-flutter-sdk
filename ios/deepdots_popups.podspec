@@ -3,8 +3,8 @@ require 'fileutils'
 
 # SDK nativo de Deepdots (KMP). Mismo zip y checksum que el paquete SPM
 # (MagicFeedback/DeepdotsSDK-SPM); la versión tiene que coincidir con la de Package.swift.
-DEEPDOTS_SDK_VERSION = '0.7.6'
-DEEPDOTS_SDK_SHA256 = '604c660d0e837240397d4d9e48bcc96d6d8ceed2a5b0f3aeb545a7c99d0c828b'
+DEEPDOTS_SDK_VERSION = '0.7.9'
+DEEPDOTS_SDK_SHA256 = 'e7f6aeea192b566d4518fdc6395d0d11148dd2f8b4a11f732c2c5ae60fab43ab'
 DEEPDOTS_SDK_URL = "https://github.com/MagicFeedback/DeepdotsSDK-SPM/releases/download/#{DEEPDOTS_SDK_VERSION}/DeepdotsSDK-#{DEEPDOTS_SDK_VERSION}.xcframework.zip"
 
 # Flutter instala los plugins como pods locales (`:path`), y CocoaPods no ejecuta

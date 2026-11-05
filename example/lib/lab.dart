@@ -8,14 +8,14 @@ const devAPI = 'https://api-dev.deepdots.com';
 
 /// Native SDK the plugin wraps (android/build.gradle.kts, ios/deepdots_popups/Package.swift and
 /// the podspec). Shown in the Lab bar; keep it in sync when the plugin moves to another version.
-const nativeSdkVersion = '0.7.6';
+const nativeSdkVersion = '0.7.9';
 
 /// Launch arguments and the saved run config live on the native side (example's MainActivity /
 /// AppDelegate): Maestro passes `launchApp: arguments` as intent extras / process arguments.
 const _channel = MethodChannel('nordly/lab');
 
 /// One DEV popup config (public key) per scenario, from assets/scenarios.json: a copy of
-/// test-apps/scenarios.json in the native SDK repo, without the customer replicas.
+/// test-apps/scenarios.json in the native SDK repo (all DEV configs in MAGICFEEDBACK_DEV).
 class Scenarios {
   Scenarios._(this._scenarios);
 
@@ -45,6 +45,8 @@ class LabConfig {
     this.user = '',
     this.start = 'home',
     this.consent,
+    this.instances = '1',
+    this.startEvent = '',
   });
 
   final String scenario;
@@ -62,6 +64,13 @@ class LabConfig {
 
   /// Cookie choice: null (not asked yet), `all` or `necessary`.
   final String? consent;
+
+  /// `2`: the host calls init() twice at start, the Flutter form of a host that creates the SDK
+  /// twice (the plugin keeps one native instance per engine). One-shot.
+  final String instances;
+
+  /// An event fired right after the first setPath(), before the popups have loaded. One-shot.
+  final String startEvent;
 
   static const _saved = ['scenario', 'nav', 'lang', 'load', 'user'];
 
@@ -84,9 +93,13 @@ class LabConfig {
       load: read('load', base.load),
       user: read('user', base.user),
       start: args['start'] ?? base.start,
-      consent: saved['consent'],
+      // `consent all|necessary`: the cookie choice is already made, so no dialog at launch.
+      consent: args['consent'] ?? saved['consent'],
+      instances: args['instances'] ?? base.instances,
+      startEvent: args['event'] ?? base.startEvent,
     );
     if (_saved.any(args.containsKey)) await config.save();
+    if (args['consent'] case final consent?) await saveConsent(consent);
     return config;
   }
 
@@ -107,6 +120,8 @@ class LabConfig {
     user: user,
     start: start,
     consent: consent,
+    instances: instances,
+    startEvent: startEvent,
   );
 
   Future<void> save() =>
@@ -121,6 +136,10 @@ class Lab {
   Lab._();
 
   static final lines = ValueNotifier<List<String>>(const []);
+
+  /// SDK events seen in this process (Lab bar `lab-counts`): the regression flows assert on them.
+  static final shown = ValueNotifier(0);
+  static final completed = ValueNotifier(0);
 
   static void log(String tag, String message) {
     debugPrint('[lab] $tag $message');

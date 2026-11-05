@@ -30,6 +30,6 @@ class MainActivity : FlutterActivity() {
     }
 
     private companion object {
-        val LAUNCH_KEYS = listOf("scenario", "nav", "lang", "load", "user", "start")
+        val LAUNCH_KEYS = listOf("scenario", "nav", "lang", "load", "user", "start", "consent", "instances", "event")
     }
 }

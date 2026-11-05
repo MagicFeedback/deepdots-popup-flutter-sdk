@@ -8,7 +8,7 @@ plugin exposes them to Dart and connects them to Flutter's navigation and app li
 
 | | |
 |---|---|
-| Native SDK | `0.7.6` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
+| Native SDK | `0.7.9` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
 | Flutter | 3.24 or later (Dart 3.5) |
 | Android | minSdk 24, compileSdk 36 (apps from Flutter 3.24–3.32 need a newer Android toolchain, see [INSTALL.md](INSTALL.md)) |
 | iOS | 13.0 or later (Swift Package Manager from Flutter 3.41; CocoaPods on all) |
@@ -72,8 +72,6 @@ scrollable body wrapped in `DeepdotsScrollListener`.
 
 - `setLanguage` changes the texts from the next popup on. The language of analytics is set in
   `init()`.
-- iOS: a popup triggered in the first instant after launch may not be shown although it is counted
-  as shown. Trigger popups after the first frame. A fix is coming in the native SDK.
 
 ## Example
 

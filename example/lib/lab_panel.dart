@@ -8,10 +8,20 @@ import 'main.dart';
 
 /// SDK Lab: what this run is (version, env, ids), what to test next, and the run log.
 class LabPanel extends StatefulWidget {
-  const LabPanel({super.key, required this.host, required this.onEvent});
+  const LabPanel({
+    super.key,
+    required this.host,
+    required this.onEvent,
+    required this.onBurst,
+    required this.onInitAgain,
+    required this.onRapidCheckout,
+  });
 
   final SdkHost host;
   final void Function(String event) onEvent;
+  final void Function(String event) onBurst;
+  final VoidCallback onInitAgain;
+  final VoidCallback onRapidCheckout;
 
   @override
   State<LabPanel> createState() => _LabPanelState();
@@ -86,13 +96,26 @@ class _LabPanelState extends State<LabPanel> {
             identifier: 'lab-apply',
             child: ListTile(title: const Text('Apply & quit'), onTap: _applyAndQuit),
           ),
+          Semantics(
+            identifier: 'lab-init-again',
+            child: ListTile(title: const Text('Init again (same options)'), onTap: widget.onInitAgain),
+          ),
+          Semantics(
+            identifier: 'lab-rapid-checkout',
+            child: ListTile(title: const Text('Rapid nav: cart ⇄ checkout ×3'), onTap: widget.onRapidCheckout),
+          ),
           if (events.isNotEmpty) ...[
             const _Header('Host events'),
-            for (final e in events)
+            for (final e in events) ...[
               Semantics(
                 identifier: 'lab-event-$e',
                 child: ListTile(title: Text(e), onTap: () => widget.onEvent(e)),
               ),
+              Semantics(
+                identifier: 'lab-burst-$e',
+                child: ListTile(title: Text('$e ×3'), onTap: () => widget.onBurst(e)),
+              ),
+            ],
           ],
           const _Header('Log · [lab]'),
           Semantics(

@@ -1,3 +1,16 @@
+## Unreleased
+
+* Native Deepdots SDK 0.7.9 (was 0.7.6). Fixes that reach Flutter apps:
+  * iOS: a popup triggered right after launch is shown (it was counted as shown but not
+    presented). The README limitation is removed.
+  * A time-on-screen popup is scheduled once (up to 0.7.5 it could show twice at app start).
+  * No Back button on the first screen after a failed Send; the "required" message stays.
+  * The title and the close button (X) stay visible when the survey is taller than the screen.
+  * iOS: a popup at the top stays inside the safe area (not under the status bar).
+  * iOS: the keyboard no longer covers Back and Send; a survey taller than its box scrolls.
+  * Android 8–10: the keyboard no longer covers Back and Send; Send, Back and close work on old
+    WebViews (Chrome < 80).
+
 ## 0.1.0-beta.2
 
 * Supports Flutter 3.24 or later (Dart 3.5); it required Flutter 3.47 before. Apps on AGP 8 now
