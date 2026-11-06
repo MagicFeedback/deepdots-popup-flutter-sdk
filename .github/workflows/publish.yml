@@ -42,8 +42,24 @@ jobs:
           [ "v${version}" = "${GITHUB_REF_NAME}" ] || { echo "::error::Tag ${GITHUB_REF_NAME} does not match version ${version} in pubspec.yaml"; exit 1; }
           [ "${podspec}" = "${version}" ] || { echo "::error::ios/deepdots_popups.podspec has ${podspec}, pubspec.yaml ${version}"; exit 1; }
           grep -q "^## ${version}\$" CHANGELOG.md || { echo "::error::CHANGELOG.md has no '## ${version}' section"; exit 1; }
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
-      - run: flutter pub publish --dry-run
-      - run: flutter pub publish --force
+      # A version already on pub.dev (for example 1.0.1, published by hand before automated publishing
+      # existed) is not published again: the tag is still useful for apps that install from git.
+      - name: Already on pub.dev?
+        id: existing
+        run: |
+          version=$(sed -n 's/^version: *//p' pubspec.yaml | tr -d '"'"'"' ')
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://pub.dev/api/packages/deepdots_popups/versions/${version}")
+          if [ "$code" = 200 ]; then
+            echo "::notice::deepdots_popups ${version} is already on pub.dev; nothing to publish"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.existing.outputs.skip != 'true'
+        run: flutter pub get
+      - if: steps.existing.outputs.skip != 'true'
+        run: flutter analyze
+      - if: steps.existing.outputs.skip != 'true'
+        run: flutter test
+      - if: steps.existing.outputs.skip != 'true'
+        run: flutter pub publish --dry-run
+      - if: steps.existing.outputs.skip != 'true'
+        run: flutter pub publish --force
