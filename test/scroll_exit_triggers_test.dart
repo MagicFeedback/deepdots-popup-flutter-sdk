@@ -10,7 +10,8 @@ void main() {
   final calls = <MethodCall>[];
 
   setUpAll(() async {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       return null;
     });
@@ -19,8 +20,10 @@ void main() {
 
   setUp(calls.clear);
 
-  List<int> scrollCalls() =>
-      [for (final c in calls.where((c) => c.method == 'onScroll')) (c.arguments as Map)['percentage'] as int];
+  List<int> scrollCalls() => [
+        for (final c in calls.where((c) => c.method == 'onScroll'))
+          (c.arguments as Map)['percentage'] as int
+      ];
 
   group('passthrough', () {
     test('onScroll envía el porcentaje acotado a 0-100', () async {
@@ -39,7 +42,8 @@ void main() {
 
   group('DeepdotsScrollListener', () {
     // Viewport de 600 (superficie de test 800x600) y 20 elementos de 100 → maxScrollExtent 1400.
-    Future<ScrollController> pumpList(WidgetTester tester, {int items = 20, ScrollPhysics? physics}) async {
+    Future<ScrollController> pumpList(WidgetTester tester,
+        {int items = 20, ScrollPhysics? physics}) async {
       final controller = ScrollController();
       addTearDown(controller.dispose);
       await tester.pumpWidget(MaterialApp(
@@ -77,7 +81,9 @@ void main() {
       expect(scrollCalls(), [50, 51, 50]);
     });
 
-    testWidgets('un drag real produce valores crecientes sin duplicados consecutivos', (tester) async {
+    testWidgets(
+        'un drag real produce valores crecientes sin duplicados consecutivos',
+        (tester) async {
       await pumpList(tester);
       await tester.drag(find.byType(ListView), const Offset(0, -500));
       await tester.pumpAndSettle();
@@ -90,16 +96,23 @@ void main() {
       expect(values.every((v) => v >= 0 && v <= 100), isTrue);
     });
 
-    testWidgets('si el contenido cabe (maxScrollExtent 0) no reporta nada, ni con rebote', (tester) async {
-      await pumpList(tester, items: 3, physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()));
+    testWidgets(
+        'si el contenido cabe (maxScrollExtent 0) no reporta nada, ni con rebote',
+        (tester) async {
+      await pumpList(tester,
+          items: 3,
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics()));
       await tester.drag(find.byType(ListView), const Offset(0, -200));
       await tester.pumpAndSettle();
       expect(scrollCalls(), isEmpty);
     });
 
-    testWidgets('el rebote por encima del final se acota a 100', (tester) async {
+    testWidgets('el rebote por encima del final se acota a 100',
+        (tester) async {
       await pumpList(tester, physics: const BouncingScrollPhysics());
-      final controller = tester.widget<ListView>(find.byType(ListView)).controller!;
+      final controller =
+          tester.widget<ListView>(find.byType(ListView)).controller!;
       controller.jumpTo(1400);
       await tester.drag(find.byType(ListView), const Offset(0, -300));
       await tester.pumpAndSettle();
@@ -120,7 +133,9 @@ void main() {
               child: ListView(
                 controller: horizontal,
                 scrollDirection: Axis.horizontal,
-                children: [for (var i = 0; i < 20; i++) const SizedBox(width: 100)],
+                children: [
+                  for (var i = 0; i < 20; i++) const SizedBox(width: 100)
+                ],
               ),
             ),
             Expanded(
@@ -130,7 +145,9 @@ void main() {
                     height: 200,
                     child: ListView(
                       controller: inner,
-                      children: [for (var i = 0; i < 20; i++) const SizedBox(height: 100)],
+                      children: [
+                        for (var i = 0; i < 20; i++) const SizedBox(height: 100)
+                      ],
                     ),
                   ),
                 ),
@@ -165,17 +182,21 @@ void main() {
 
     // El setPath nativo ya encola los popups `exit` de la ruta ANTERIOR. Un onExit automático
     // sobraría (antes) o los asociaría a la pantalla nueva (después): el observer no lo llama.
-    testWidgets('al navegar solo envía setPath de la ruta nueva, sin onExit', (tester) async {
+    testWidgets('al navegar solo envía setPath de la ruta nueva, sin onExit',
+        (tester) async {
       final navigator = await pumpApp(tester);
       navigator.currentState!.pushNamed('/game');
       await tester.pumpAndSettle();
       navigator.currentState!.pop();
       await tester.pumpAndSettle();
       expect(calls.map((c) => c.method), ['setPath', 'setPath']);
-      expect([for (final c in calls) (c.arguments as Map)['path']], ['/game', '/home']);
+      expect([for (final c in calls) (c.arguments as Map)['path']],
+          ['/game', '/home']);
     });
 
-    testWidgets('onExit manual antes de navegar llega ANTES que el setPath de la ruta nueva', (tester) async {
+    testWidgets(
+        'onExit manual antes de navegar llega ANTES que el setPath de la ruta nueva',
+        (tester) async {
       final navigator = await pumpApp(tester);
       // Patrón de los ejemplos nativos: onExit() en el botón Atrás/salir y después navegar.
       await DeepdotsPopups.onExit();

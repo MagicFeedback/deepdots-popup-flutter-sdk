@@ -1,3 +1,11 @@
+## 1.0.1
+
+Same plugin and native SDK as 1.0.0 (0.7.9); first version on pub.dev.
+
+* Install it with `deepdots_popups: ^1.0.1`. Installing from git with a tag (`ref: v1.0.1`) still
+  works.
+* Package metadata, documentation links and formatting for pub.dev. No change in behaviour.
+
 ## 1.0.0
 
 First release (no longer a beta). Same Dart API as 0.1.0-beta.2; install it with `ref: v1.0.0`.

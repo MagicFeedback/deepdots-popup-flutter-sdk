@@ -1,0 +1,49 @@
+# Publishes the plugin on pub.dev when a tag vX.Y.Z is pushed, with GitHub's OIDC token: no pub.dev
+# token or secret lives in the repository. pub.dev accepts it only if automated publishing is on in
+# the package's admin page, for this repository, with the tag pattern `v{{version}}` and the
+# `pub.dev` environment. Docs: https://dart.dev/tools/pub/automated-publishing
+name: Publish to pub.dev
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+# One publish at a time; a running publish is never cancelled.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: pub.dev
+    permissions:
+      contents: read
+      id-token: write # OIDC token for pub.dev
+    steps:
+      - name: Only from a tag
+        if: github.ref_type != 'tag'
+        run: echo "::error::Publishing runs only from a tag vX.Y.Z" && exit 1
+      - uses: actions/checkout@v4
+      # Sets up pub's credentials with the OIDC token (it also installs Dart; Flutter's comes next
+      # and takes over the PATH).
+      - uses: dart-lang/setup-dart@v1
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Tag matches the version in pubspec.yaml
+        run: |
+          version=$(sed -n 's/^version: *//p' pubspec.yaml | tr -d '"'"'"' ')
+          podspec=$(sed -n "s/^ *s.version *= *'\(.*\)'/\1/p" ios/deepdots_popups.podspec)
+          echo "tag ${GITHUB_REF_NAME}, pubspec ${version}, podspec ${podspec}"
+          [ "v${version}" = "${GITHUB_REF_NAME}" ] || { echo "::error::Tag ${GITHUB_REF_NAME} does not match version ${version} in pubspec.yaml"; exit 1; }
+          [ "${podspec}" = "${version}" ] || { echo "::error::ios/deepdots_popups.podspec has ${podspec}, pubspec.yaml ${version}"; exit 1; }
+          grep -q "^## ${version}\$" CHANGELOG.md || { echo "::error::CHANGELOG.md has no '## ${version}' section"; exit 1; }
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter pub publish --dry-run
+      - run: flutter pub publish --force

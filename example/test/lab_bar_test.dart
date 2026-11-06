@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 // The Maestro flows of the native test apps find the run by these ids (subflows/launch.yaml).
 void main() {
-  testWidgets('the Lab bar shows the run and the tabs carry their ids', (tester) async {
+  testWidgets('the Lab bar shows the run and the tabs carry their ids', (
+    tester,
+  ) async {
     final semantics = tester.ensureSemantics();
     final messenger = tester.binding.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(
@@ -16,7 +18,10 @@ void main() {
         _ => null,
       },
     );
-    messenger.setMockMethodCallHandler(const MethodChannel('com.deepdots/popups'), (call) async => null);
+    messenger.setMockMethodCallHandler(
+      const MethodChannel('com.deepdots/popups'),
+      (call) async => null,
+    );
     final scenarios = await Scenarios.load(rootBundle);
     final config = await LabConfig.resolve(scenarios);
     await tester.pumpWidget(NordlyApp(host: SdkHost(config, scenarios)));

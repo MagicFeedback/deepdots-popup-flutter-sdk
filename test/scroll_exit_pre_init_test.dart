@@ -11,13 +11,16 @@ void main() {
 
   setUp(() {
     calls.clear();
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       return null;
     });
   });
 
-  testWidgets('antes de init() ni onScroll ni onExit tocan el canal, y el listener no pierde el valor', (tester) async {
+  testWidgets(
+      'antes de init() ni onScroll ni onExit tocan el canal, y el listener no pierde el valor',
+      (tester) async {
     final controller = ScrollController();
     addTearDown(controller.dispose);
     await tester.pumpWidget(MaterialApp(
@@ -32,7 +35,8 @@ void main() {
     ));
     await DeepdotsPopups.onScroll(50);
     await DeepdotsPopups.onExit();
-    controller.jumpTo(700); // 50%, sin SDK: no se envía (el nativo respondería not_initialized)
+    controller.jumpTo(
+        700); // 50%, sin SDK: no se envía (el nativo respondería not_initialized)
     await tester.pump();
     expect(calls, isEmpty);
 

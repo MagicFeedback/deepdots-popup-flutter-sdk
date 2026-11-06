@@ -42,7 +42,8 @@ class DeepdotsEvent {
 /// Sesión de analytics tal como la ve la API de Deepdots: cada sesión acaba siendo UN feedback y
 /// [sessionId] es su `sdkSessionId`. Llega por [DeepdotsPopups.feedbackSessions].
 class DeepdotsFeedbackSession {
-  const DeepdotsFeedbackSession({required this.sessionId, required this.closed});
+  const DeepdotsFeedbackSession(
+      {required this.sessionId, required this.closed});
 
   final String sessionId;
 
@@ -50,15 +51,18 @@ class DeepdotsFeedbackSession {
   final bool closed;
 
   @override
-  String toString() => 'DeepdotsFeedbackSession($sessionId, ${closed ? 'closed' : 'open'})';
+  String toString() =>
+      'DeepdotsFeedbackSession($sessionId, ${closed ? 'closed' : 'open'})';
 }
 
 class DeepdotsPopups {
   DeepdotsPopups._();
 
   static const MethodChannel _channel = MethodChannel('com.deepdots/popups');
-  static final StreamController<DeepdotsEvent> _events = StreamController.broadcast();
-  static final StreamController<DeepdotsFeedbackSession> _feedbackSessions = StreamController.broadcast();
+  static final StreamController<DeepdotsEvent> _events =
+      StreamController.broadcast();
+  static final StreamController<DeepdotsFeedbackSession> _feedbackSessions =
+      StreamController.broadcast();
   static AppLifecycleListener? _lifecycle;
   static bool _initialized = false;
   static String? _pendingPath;
@@ -70,7 +74,8 @@ class DeepdotsPopups {
   /// `analyticsPublicKey`). Agrupa por `sessionId`, no por orden: el `open` de la siguiente sesión
   /// puede llegar antes que el `closed` de la anterior. Si la app muere antes de cerrar, el
   /// `closed` no llega.
-  static Stream<DeepdotsFeedbackSession> get feedbackSessions => _feedbackSessions.stream;
+  static Stream<DeepdotsFeedbackSession> get feedbackSessions =>
+      _feedbackSessions.stream;
 
   /// Inicializa el SDK nativo. Idempotente: una segunda llamada no hace nada.
   ///
@@ -142,7 +147,8 @@ class DeepdotsPopups {
   }
 
   /// Dispara los popups con trigger de tipo `event` y ese nombre.
-  static Future<void> triggerEvent(String name) => _channel.invokeMethod('triggerEvent', {'name': name});
+  static Future<void> triggerEvent(String name) =>
+      _channel.invokeMethod('triggerEvent', {'name': name});
 
   // --- Triggers de scroll y de salida ---
 
@@ -152,7 +158,8 @@ class DeepdotsPopups {
   /// Antes de `init()` no hace nada: todavía no hay definiciones que evaluar.
   static Future<void> onScroll(int percentage) async {
     if (!_initialized) return;
-    await _channel.invokeMethod<void>('onScroll', {'percentage': percentage.clamp(0, 100)});
+    await _channel.invokeMethod<void>(
+        'onScroll', {'percentage': percentage.clamp(0, 100)});
   }
 
   /// Avisa de que el usuario va a salir de la pantalla actual: encola los popups con trigger
@@ -171,19 +178,23 @@ class DeepdotsPopups {
       _channel.invokeMethod('track', {'name': name, 'params': params});
 
   /// Cambio de usuario (login/logout). Sin argumento vuelve al id anónimo del SDK.
-  static Future<void> setUserId([String? userId]) => _channel.invokeMethod('setUserId', {'userId': userId});
+  static Future<void> setUserId([String? userId]) =>
+      _channel.invokeMethod('setUserId', {'userId': userId});
 
   static Future<void> setTrackingEnabled(bool enabled) =>
       _channel.invokeMethod('setTrackingEnabled', {'enabled': enabled});
 
-  static Future<String?> getUserId() => _channel.invokeMethod<String>('getUserId');
+  static Future<String?> getUserId() =>
+      _channel.invokeMethod<String>('getUserId');
 
-  static Future<String?> getSessionId() => _channel.invokeMethod<String>('getSessionId');
+  static Future<String?> getSessionId() =>
+      _channel.invokeMethod<String>('getSessionId');
 
   /// Id del feedback en que se convertirá la sesión de analytics abierta (`sdkSessionId` en la
   /// API). `null` hasta que la API acepta el primer lote, tras cerrar la sesión y sin
   /// `analyticsPublicKey`. Para saber también qué sesión se cerró, usa [feedbackSessions].
-  static Future<String?> getFeedbackSessionId() => _channel.invokeMethod<String>('getFeedbackSessionId');
+  static Future<String?> getFeedbackSessionId() =>
+      _channel.invokeMethod<String>('getFeedbackSessionId');
 
   // ───────── Analytics ─────────
   //
@@ -201,8 +212,11 @@ class DeepdotsPopups {
   /// Contact del backend para segmentar popups. Requiere `userId` en el `init`. Devuelve `true`
   /// si se enviaron y `false` si no cambiaron, falta el `userId` o el tracking está desactivado.
   /// Nativo: `suspend setContactAttributes(attributes)`.
-  static Future<bool> setContactAttributes(Map<String, Object?> attributes) async =>
-      await _channel.invokeMethod<bool>('setContactAttributes', {'attributes': attributes}) ?? false;
+  static Future<bool> setContactAttributes(
+          Map<String, Object?> attributes) async =>
+      await _channel.invokeMethod<bool>(
+          'setContactAttributes', {'attributes': attributes}) ??
+      false;
 
   /// Métrica medible del host (campo `feedback.metrics`). Persistente: se reenvía en cada lote
   /// y la misma `key` sobrescribe. Un `value` nulo se ignora. Nativo: `setMetric(key, value)`.
@@ -236,28 +250,37 @@ class DeepdotsPopups {
 
   /// Envía ya el lote de analytics acumulado (si falla por red se re-encola). Nativo:
   /// `flushAnalytics()` con el `AnalyticsFlushMeta` por defecto.
-  static Future<void> flushAnalytics() => _channel.invokeMethod('flushAnalytics');
+  static Future<void> flushAnalytics() =>
+      _channel.invokeMethod('flushAnalytics');
 
   /// Una búsqueda del usuario (Findability #31/#35). `has_results` lo deriva el SDK de
   /// [resultsCount]. Nativo: `trackSearch(query, resultsCount, params)`.
-  static Future<void> trackSearch(String query, int resultsCount, [Map<String, Object?>? params]) =>
-      _channel.invokeMethod('trackSearch', {'query': query, 'resultsCount': resultsCount, 'params': params});
+  static Future<void> trackSearch(String query, int resultsCount,
+          [Map<String, Object?>? params]) =>
+      _channel.invokeMethod('trackSearch',
+          {'query': query, 'resultsCount': resultsCount, 'params': params});
 
   /// Fricción al encontrar algo (#34/#35), agrupada por [frictionTopic]. Nativo:
   /// `trackFindabilityFriction(frictionTopic, params)`.
-  static Future<void> trackFindabilityFriction(String frictionTopic, [Map<String, Object?>? params]) =>
-      _channel.invokeMethod('trackFindabilityFriction', {'frictionTopic': frictionTopic, 'params': params});
+  static Future<void> trackFindabilityFriction(String frictionTopic,
+          [Map<String, Object?>? params]) =>
+      _channel.invokeMethod('trackFindabilityFriction',
+          {'frictionTopic': frictionTopic, 'params': params});
 
   /// Un paso de un embudo; el backend correlaciona los pasos por [taskId] para la conversión,
   /// el abandono y el tiempo. Nativo: `trackFunnelStep(funnel, step, taskId, params)`.
-  static Future<void> trackFunnelStep(String funnel, String step, String taskId, [Map<String, Object?>? params]) =>
-      _channel.invokeMethod('trackFunnelStep', {'funnel': funnel, 'step': step, 'taskId': taskId, 'params': params});
+  static Future<void> trackFunnelStep(String funnel, String step, String taskId,
+          [Map<String, Object?>? params]) =>
+      _channel.invokeMethod('trackFunnelStep',
+          {'funnel': funnel, 'step': step, 'taskId': taskId, 'params': params});
 
   /// Interacción significativa (Product Effectiveness), agrupada por [interactionType]
   /// (`get_help`, `contact_support`…). Un tipo vacío lo descarta el SDK con un aviso. Nativo:
   /// `trackMeaningfulInteraction(interactionType, params)`.
-  static Future<void> trackMeaningfulInteraction(String interactionType, [Map<String, Object?>? params]) =>
-      _channel.invokeMethod('trackMeaningfulInteraction', {'interactionType': interactionType, 'params': params});
+  static Future<void> trackMeaningfulInteraction(String interactionType,
+          [Map<String, Object?>? params]) =>
+      _channel.invokeMethod('trackMeaningfulInteraction',
+          {'interactionType': interactionType, 'params': params});
 
   /// Una etapa del funnel de una notificación del host (Messaging #18–22): [stage] (p. ej.
   /// `delivered`, `opened`), [id] del mensaje, [title] para agrupar y [channel] (`push` o
@@ -288,11 +311,13 @@ class DeepdotsPopups {
   /// Entrada en un mini-service: etiqueta los eventos siguientes y la metadata del survey con
   /// `mini_service`. Nativo: `enterMiniService(name, entryPointType)`.
   static Future<void> enterMiniService(String name, [String? entryPointType]) =>
-      _channel.invokeMethod('enterMiniService', {'name': name, 'entryPointType': entryPointType});
+      _channel.invokeMethod(
+          'enterMiniService', {'name': name, 'entryPointType': entryPointType});
 
   /// Salida del mini-service [name]: emite `mini_service_exit` con la duración. No hace nada
   /// si ese mini-service no está activo. Nativo: `exitMiniService(name)`.
-  static Future<void> exitMiniService(String name) => _channel.invokeMethod('exitMiniService', {'name': name});
+  static Future<void> exitMiniService(String name) =>
+      _channel.invokeMethod('exitMiniService', {'name': name});
 
   // Control manual de popups. Los que pintan algo (`show`, `showByPopupId`, `triggerSurvey`,
   // `close`) necesitan la Activity (Android) o el root view controller (iOS) y fallan con
@@ -301,8 +326,10 @@ class DeepdotsPopups {
   /// Muestra el popup del survey [surveyId] saltándose triggers y segmentación. [data] llega
   /// como `extra` del evento `popup_shown`. El SDK nativo busca el popup solo por [surveyId];
   /// [productId] se pasa tal cual pero hoy no se usa.
-  static Future<void> show(String surveyId, String productId, [Map<String, Object?>? data]) =>
-      _channel.invokeMethod('show', {'surveyId': surveyId, 'productId': productId, 'data': data});
+  static Future<void> show(String surveyId, String productId,
+          [Map<String, Object?>? data]) =>
+      _channel.invokeMethod(
+          'show', {'surveyId': surveyId, 'productId': productId, 'data': data});
 
   /// Muestra el popup con ese id, sin evaluar triggers ni segmentación.
   static Future<void> showByPopupId(String popupId) =>
@@ -311,7 +338,8 @@ class DeepdotsPopups {
   /// Muestra el popup del survey [surveyId] (o [popupId], si hay varios) solo si pasa la
   /// segmentación y el cooldown, como si hubiese saltado su trigger.
   static Future<void> triggerSurvey(String surveyId, [String? popupId]) =>
-      _channel.invokeMethod('triggerSurvey', {'surveyId': surveyId, 'popupId': popupId});
+      _channel.invokeMethod(
+          'triggerSurvey', {'surveyId': surveyId, 'popupId': popupId});
 
   /// Cierra el popup abierto.
   static Future<void> close() => _channel.invokeMethod('close');
@@ -374,13 +402,16 @@ class DeepdotsNavigatorObserver extends NavigatorObserver {
   }
 
   @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) => _report(route);
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _report(route);
 
   @override
-  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) => _report(newRoute);
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      _report(newRoute);
 
   @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _report(previousRoute);
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _report(previousRoute);
 }
 
 /// Reporta al SDK (`onScroll`) el porcentaje de scroll vertical de su subárbol, para los popups
@@ -415,7 +446,9 @@ class _DeepdotsScrollListenerState extends State<DeepdotsScrollListener> {
     final range = metrics.maxScrollExtent - metrics.minScrollExtent;
     if (range <= 0) return false;
     // Se acota a 0-100: el rebote (overscroll) de iOS lleva `pixels` fuera del rango.
-    final pct = ((metrics.pixels - metrics.minScrollExtent) / range * 100).round().clamp(0, 100);
+    final pct = ((metrics.pixels - metrics.minScrollExtent) / range * 100)
+        .round()
+        .clamp(0, 100);
     // Antes de init() no se envía ni se apunta, para no perder el valor cuando ya se pueda enviar.
     if (pct == _lastReported || !DeepdotsPopups._initialized) return false;
     _lastReported = pct;
@@ -425,6 +458,7 @@ class _DeepdotsScrollListenerState extends State<DeepdotsScrollListener> {
 
   @override
   Widget build(BuildContext context) {
-    return NotificationListener<ScrollNotification>(onNotification: _onNotification, child: widget.child);
+    return NotificationListener<ScrollNotification>(
+        onNotification: _onNotification, child: widget.child);
   }
 }

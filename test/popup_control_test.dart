@@ -6,7 +6,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const channel = MethodChannel('com.deepdots/popups');
   final calls = <MethodCall>[];
-  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
   setUp(() {
     calls.clear();
@@ -53,7 +54,8 @@ void main() {
 
     test('show sin data', () async {
       await DeepdotsPopups.show('s-1', 'p-1');
-      expect(last().arguments, {'surveyId': 's-1', 'productId': 'p-1', 'data': null});
+      expect(last().arguments,
+          {'surveyId': 's-1', 'productId': 'p-1', 'data': null});
     });
 
     test('showByPopupId', () async {
@@ -88,13 +90,16 @@ void main() {
       expect(last().arguments, {'targetId': 'buy-button'});
     });
 
-    test('el error de contexto nativo llega a Dart como PlatformException', () async {
+    test('el error de contexto nativo llega a Dart como PlatformException',
+        () async {
       messenger.setMockMethodCallHandler(channel, (call) async {
-        throw PlatformException(code: 'no_context', message: 'No Activity attached yet');
+        throw PlatformException(
+            code: 'no_context', message: 'No Activity attached yet');
       });
       expect(
         DeepdotsPopups.show('s-1', 'p-1'),
-        throwsA(isA<PlatformException>().having((e) => e.code, 'code', 'no_context')),
+        throwsA(isA<PlatformException>()
+            .having((e) => e.code, 'code', 'no_context')),
       );
     });
   });
@@ -119,7 +124,8 @@ void main() {
       );
     }
 
-    test('onEvent con extra y timestamp produce el DeepdotsEvent completo', () async {
+    test('onEvent con extra y timestamp produce el DeepdotsEvent completo',
+        () async {
       // El handler de llamadas nativas se registra en init().
       await DeepdotsPopups.init(publicKey: 'pk');
       final next = DeepdotsPopups.events.first;
@@ -141,7 +147,8 @@ void main() {
       expect(event.extra['action'], 'partial');
       expect(event.extra['page'], 2);
       expect(event.extra['nested'], {'ok': true});
-      expect(event.timestamp, DateTime.fromMillisecondsSinceEpoch(1759752000000));
+      expect(
+          event.timestamp, DateTime.fromMillisecondsSinceEpoch(1759752000000));
     });
 
     test('onEvent sin extra ni timestamp deja valores vacíos', () async {

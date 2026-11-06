@@ -13,14 +13,16 @@ void main() {
   setUp(() {
     calls.clear();
     reply = null;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       return reply;
     });
   });
 
   tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null);
   });
 
   void expectCall(String method, Object? arguments) {
@@ -30,14 +32,18 @@ void main() {
   }
 
   test('init pasa contactAttributes y geolocation', () async {
-    await DeepdotsPopups.init(publicKey: 'pk', contactAttributes: {'plan': 'pro', 'age': 30}, geolocation: false);
+    await DeepdotsPopups.init(
+        publicKey: 'pk',
+        contactAttributes: {'plan': 'pro', 'age': 30},
+        geolocation: false);
     final args = calls.firstWhere((c) => c.method == 'init').arguments as Map;
     expect(args['contactAttributes'], {'plan': 'pro', 'age': 30});
     expect(args['geolocation'], false);
   });
 
   test('setUserAttributes', () async {
-    await DeepdotsPopups.setUserAttributes({'plan': 'pro', 'beta': true, 'seats': 3});
+    await DeepdotsPopups.setUserAttributes(
+        {'plan': 'pro', 'beta': true, 'seats': 3});
     expectCall('setUserAttributes', {
       'attributes': {'plan': 'pro', 'beta': true, 'seats': 3},
     });
@@ -112,11 +118,13 @@ void main() {
 
   test('trackFindabilityFriction', () async {
     await DeepdotsPopups.trackFindabilityFriction('billing');
-    expectCall('trackFindabilityFriction', {'frictionTopic': 'billing', 'params': null});
+    expectCall('trackFindabilityFriction',
+        {'frictionTopic': 'billing', 'params': null});
   });
 
   test('trackFunnelStep', () async {
-    await DeepdotsPopups.trackFunnelStep('checkout', 'payment', 'task-1', {'step_index': 2});
+    await DeepdotsPopups.trackFunnelStep(
+        'checkout', 'payment', 'task-1', {'step_index': 2});
     expectCall('trackFunnelStep', {
       'funnel': 'checkout',
       'step': 'payment',
@@ -127,7 +135,8 @@ void main() {
 
   test('trackMeaningfulInteraction', () async {
     await DeepdotsPopups.trackMeaningfulInteraction('get_help');
-    expectCall('trackMeaningfulInteraction', {'interactionType': 'get_help', 'params': null});
+    expectCall('trackMeaningfulInteraction',
+        {'interactionType': 'get_help', 'params': null});
   });
 
   test('trackMessage pasa value como double y no valida el canal', () async {
@@ -155,7 +164,8 @@ void main() {
   });
 
   test('trackMessage con los opcionales a null', () async {
-    await DeepdotsPopups.trackMessage(stage: 'delivered', id: 'm-2', title: 'T', channel: 'push');
+    await DeepdotsPopups.trackMessage(
+        stage: 'delivered', id: 'm-2', title: 'T', channel: 'push');
     expectCall('trackMessage', {
       'stage': 'delivered',
       'id': 'm-2',
@@ -170,7 +180,8 @@ void main() {
 
   test('enterMiniService', () async {
     await DeepdotsPopups.enterMiniService('wallet', 'tab_bar');
-    expectCall('enterMiniService', {'name': 'wallet', 'entryPointType': 'tab_bar'});
+    expectCall(
+        'enterMiniService', {'name': 'wallet', 'entryPointType': 'tab_bar'});
   });
 
   test('enterMiniService sin entryPointType', () async {

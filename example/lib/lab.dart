@@ -22,7 +22,9 @@ class Scenarios {
   final Map<String, Map<String, Object?>> _scenarios;
 
   static Future<Scenarios> load(AssetBundle bundle) async {
-    final json = jsonDecode(await bundle.loadString('assets/scenarios.json')) as Map<String, Object?>;
+    final json = jsonDecode(
+      await bundle.loadString('assets/scenarios.json'),
+    ) as Map<String, Object?>;
     final scenarios = (json['scenarios'] as Map<String, Object?>).map(
       (name, value) => MapEntry(name, Map<String, Object?>.from(value as Map)),
     );
@@ -31,7 +33,9 @@ class Scenarios {
 
   List<String> get names => _scenarios.keys.toList()..sort();
   String? publicKey(String name) => _scenarios[name]?['publicKey'] as String?;
-  List<String> events(String name) => [...?(_scenarios[name]?['events'] as List?)?.cast<String>()];
+  List<String> events(String name) => [
+    ...?(_scenarios[name]?['events'] as List?)?.cast<String>(),
+  ];
 }
 
 /// What a run tests. Maestro passes it as launch arguments; the SDK Lab panel edits it. It is
@@ -81,8 +85,10 @@ class LabConfig {
       ..._dartDefines(),
       ...?(await _channel.invokeMapMethod<String, String>('launchArguments')),
     };
-    final saved = await _channel.invokeMapMethod<String, String>('load') ?? const {};
-    String read(String key, String fallback) => args[key] ?? saved[key] ?? fallback;
+    final saved =
+        await _channel.invokeMapMethod<String, String>('load') ?? const {};
+    String read(String key, String fallback) =>
+        args[key] ?? saved[key] ?? fallback;
     const base = LabConfig();
     var scenario = read('scenario', base.scenario);
     if (scenarios.publicKey(scenario) == null) scenario = base.scenario;
@@ -104,15 +110,26 @@ class LabConfig {
   }
 
   static Map<String, String> _dartDefines() => {
-    if (const String.fromEnvironment('scenario').isNotEmpty) 'scenario': const String.fromEnvironment('scenario'),
-    if (const String.fromEnvironment('nav').isNotEmpty) 'nav': const String.fromEnvironment('nav'),
-    if (const String.fromEnvironment('lang').isNotEmpty) 'lang': const String.fromEnvironment('lang'),
-    if (const String.fromEnvironment('load').isNotEmpty) 'load': const String.fromEnvironment('load'),
-    if (const String.fromEnvironment('user').isNotEmpty) 'user': const String.fromEnvironment('user'),
-    if (const String.fromEnvironment('start').isNotEmpty) 'start': const String.fromEnvironment('start'),
+    if (const String.fromEnvironment('scenario').isNotEmpty)
+      'scenario': const String.fromEnvironment('scenario'),
+    if (const String.fromEnvironment('nav').isNotEmpty)
+      'nav': const String.fromEnvironment('nav'),
+    if (const String.fromEnvironment('lang').isNotEmpty)
+      'lang': const String.fromEnvironment('lang'),
+    if (const String.fromEnvironment('load').isNotEmpty)
+      'load': const String.fromEnvironment('load'),
+    if (const String.fromEnvironment('user').isNotEmpty)
+      'user': const String.fromEnvironment('user'),
+    if (const String.fromEnvironment('start').isNotEmpty)
+      'start': const String.fromEnvironment('start'),
   };
 
-  LabConfig copyWith({String? scenario, String? nav, String? lang, String? load}) => LabConfig(
+  LabConfig copyWith({
+    String? scenario,
+    String? nav,
+    String? lang,
+    String? load,
+  }) => LabConfig(
     scenario: scenario ?? this.scenario,
     nav: nav ?? this.nav,
     lang: lang ?? this.lang,
@@ -124,10 +141,16 @@ class LabConfig {
     startEvent: startEvent,
   );
 
-  Future<void> save() =>
-      _channel.invokeMethod('save', {'scenario': scenario, 'nav': nav, 'lang': lang, 'load': load, 'user': user});
+  Future<void> save() => _channel.invokeMethod('save', {
+    'scenario': scenario,
+    'nav': nav,
+    'lang': lang,
+    'load': load,
+    'user': user,
+  });
 
-  static Future<void> saveConsent(String consent) => _channel.invokeMethod('save', {'consent': consent});
+  static Future<void> saveConsent(String consent) =>
+      _channel.invokeMethod('save', {'consent': consent});
 }
 
 /// Run log: on screen (SDK Lab) and in the device log with the `[lab]` prefix, which is what CI
@@ -145,7 +168,8 @@ class Lab {
     debugPrint('[lab] $tag $message');
     final now = DateTime.now();
     String two(int n) => n.toString().padLeft(2, '0');
-    final line = '${two(now.hour)}:${two(now.minute)}:${two(now.second)} $tag $message';
+    final line =
+        '${two(now.hour)}:${two(now.minute)}:${two(now.second)} $tag $message';
     final next = [...lines.value, line];
     lines.value = next.length > 200 ? next.sublist(next.length - 200) : next;
   }
