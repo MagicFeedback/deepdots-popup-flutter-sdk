@@ -13,19 +13,23 @@ void main() {
 
   setUp(() {
     calls.clear();
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       return null;
     });
   });
 
   tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null);
   });
 
   test('la versión del plugin coincide con la del pubspec', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    final version = RegExp(r'^version:\s*(\S+)', multiLine: true).firstMatch(pubspec)!.group(1);
+    final version = RegExp(r'^version:\s*(\S+)', multiLine: true)
+        .firstMatch(pubspec)!
+        .group(1);
     expect(deepdotsPopupsVersion, version);
   });
 
