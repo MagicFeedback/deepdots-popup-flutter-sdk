@@ -20,10 +20,10 @@ concurrency:
 
 env:
   FLUTTER_VERSION: "3.47.6"
-  # Maestro flows and runner: test-apps/ of the native SDK at this commit (dev after PR #52).
+  # Maestro flows and runner: test-apps/ of the native SDK at this commit (tag v0.7.9).
   # Move it on purpose, when the flows we want are there: new native flows may not apply here.
   NATIVE_REPO: MagicFeedback/deepdots-popup-mobile-native-sdk
-  NATIVE_TEST_APPS_REF: 007f9c93f2a412fecd9585e29ecbbf6c879742e0
+  NATIVE_TEST_APPS_REF: ea325510e0b92cd527c7d20b8d7b22dceccc063d
 
 jobs:
   check:
@@ -37,9 +37,12 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - run: flutter pub get && (cd example && flutter pub get)
+      - run: flutter pub get && (cd example && flutter pub get) && (cd example/basic && flutter pub get)
+      - run: dart format --output=none --set-exit-if-changed .
       - run: flutter analyze
       - run: flutter test
+      # The package as pub.dev would take it: no warnings (publish.yml runs it again on a tag).
+      - run: flutter pub publish --dry-run
       - name: Example widget tests
         working-directory: example
         run: flutter test

@@ -7,7 +7,7 @@ Plugin de Flutter que envuelve el SDK nativo de Deepdots (KMP, repo
 `deepdots-popup-mobile-native-sdk`) para Android e iOS. No reimplementa lógica: la API de Dart
 traduce cada llamada a `DeepdotsPopups` nativo por un `MethodChannel` y reenvía sus eventos.
 
-**Estado: beta (MF-3270).** Usa el SDK nativo **0.7.6** publicado: Maven Central
+**Estado: release 1.0.0 (DD-21, antes MF-3270).** Usa el SDK nativo **0.7.9** publicado: Maven Central
 (`com.deepdots.sdk:shared-android`) en Android y el paquete `MagicFeedback/DeepdotsSDK-SPM` en iOS
 (SPM, o con CocoaPods el podspec descarga el mismo XCFramework y comprueba su sha256). La versión
 nativa se cambia en `android/build.gradle.kts`, `ios/deepdots_popups/Package.swift` y
@@ -115,7 +115,7 @@ No se probó a responder y enviar el survey, para no mandar respuestas reales al
 
 ## Hallazgos
 
-Arreglados en el SDK nativo (todos publicados; el plugin va sobre la 0.7.6) y verificados en el
+Arreglados en el SDK nativo (todos publicados; el plugin va sobre la 0.7.9) y verificados en el
 emulador y el simulador el 2026-10-06 con este plugin:
 
 | Hallazgo | Rama KMP | Verificado |
@@ -126,19 +126,23 @@ emulador y el simulador el 2026-10-06 con este plugin:
 | `popup_clicked` falso al cargar el survey | `fix/no-popup-clicked-on-load` | Android, iOS |
 | `close()` en iOS cerraba cualquier modal del host | `fix/ios-close-only-popup` | iOS (cierre del popup) |
 
-Abiertos (revisados el 2026-11-02 contra el nativo 0.7.6):
+Abiertos (revisados el 2026-11-05 contra el nativo 0.7.9):
 
 1. **iOS, presentación con un VC del host encima:** resuelto desde el nativo 0.7.2. El popup se
    presenta desde lo alto de la cadena de presentados (picker, share sheet, pantallas modales) y
    espera si hay una alerta (`PopupPresenter.ios.kt`).
-2. **iOS, evento al arrancar:** sigue en 0.7.6. `showDefinition` marca el popup como mostrado
-   (cooldown, `PopupShown`, `SHOWED`) antes de presentarlo, y si el root view controller aún no
-   está en una ventana UIKit rechaza la presentación en silencio. Arreglo: el presentador espera a
-   que esté en la ventana (deepdots-popup-mobile-native-sdk#61, pendiente de release).
+2. **iOS, evento al arrancar:** resuelto en el nativo 0.7.7 (deepdots-popup-mobile-native-sdk#61):
+   el presentador espera a que el view controller esté en una ventana.
 3. **`reportError`:** el payload difiere entre plataformas (en iOS el stack de Dart va en
    `context`, porque desde Swift no se puede fijar el stack de un `KotlinThrowable`).
 4. **`setLanguage`:** solo cambia los textos del chrome a partir del siguiente popup; el idioma
    de analytics se fija en `init()`.
+5. **Diálogos de Flutter:** el nativo solo retiene el popup ante diálogos nativos
+   (`UIAlertController` en iOS; otra ventana con el foco en Android). Un `showDialog` de Flutter se
+   pinta dentro de la vista de Flutter y el SDK no lo ve: un popup por tiempo sale encima (flow
+   `lemu/09-dialog-at-start`; en Android pasa en falso porque Maestro ve el diálogo a través del
+   popup). Workaround documentado: `init()` tras el consentimiento. Arreglo real: una API nativa para
+   avisar de un overlay del host (release combinada 0.7.10).
 
 ## Ejecutar el ejemplo
 

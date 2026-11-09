@@ -1,5 +1,5 @@
 {
-  "$comment": "Copy of test-apps/scenarios.json in deepdots-popup-mobile-native-sdk (MF-3244), without the customer replicas: popup configs in DEV (api-dev.deepdots.com, company MAGICFEEDBACK_DEV), one per scenario. The public keys are public by design: they are what a customer's app ships with. Keep it in sync with the native file.",
+  "$comment": "Popup configs in DEV (api-dev.deepdots.com, company MAGICFEEDBACK_DEV) used by the native test apps (MF-3244). One popup config per scenario, so each run gets exactly the popups it tests. The public keys are public by design: they are what a customer's app ships with. Both apps read this file at build time. If you change a popup here, change it in the DEV Admin Panel too.",
   "environment": "Development",
   "company": "MAGICFEEDBACK_DEV",
   "surveys": {
@@ -25,9 +25,7 @@
       "popupOptionId": "550e60c0-d2e7-11f1-ab43-833369eb683b",
       "describe": "event rate_product (bottom sheet \"Submit rating\"), complex survey",
       "title": "Tell us what you think of this product",
-      "events": [
-        "rate_product"
-      ]
+      "events": ["rate_product"]
     },
     "help-click": {
       "publicKey": "ll3lGXsyQYiPgeZfaN7HDgIkQBoLj0x2",
@@ -52,35 +50,114 @@
       "popupOptionId": "55cccec0-d2e7-11f1-ab43-833369eb683b",
       "describe": "audience segmentation: two popups on rate_product, segments.lang en / es; the app language picks one",
       "title": "Rate this product (EN audience)",
-      "events": [
-        "rate_product"
-      ]
+      "events": ["rate_product"]
     },
     "release-fixtures": {
       "publicKey": "aaU0GgF52Uk8qXjF9jPVqUY6vhd9ve3y",
       "popupOptionId": "560f07e0-d2e7-11f1-ab43-833369eb683b",
       "describe": "release/fixtures/popups/*.json (MF-3242) served by the DEV API, with the real simple survey; path and es-only segments dropped, legacy trigger stored in the current shape",
       "title": "Quick question",
-      "events": [
-        "fixture_minimal",
-        "fixture_full",
-        "fixture_hash",
-        "fixture_legacy"
-      ]
+      "events": ["fixture_minimal", "fixture_full", "fixture_hash", "fixture_legacy"]
     },
     "fault-survey-missing": {
       "publicKey": "zMP1bzuWvLuKbJazVeSDRprRjZRk4ru2",
       "popupOptionId": "567c48a0-d2e7-11f1-ab43-833369eb683b",
       "describe": "fault: popup on event fault_survey whose survey id does not exist, so the survey fails to load",
       "title": "This survey does not exist",
-      "events": [
-        "fault_survey"
-      ]
+      "events": ["fault_survey"]
+    },
+    "client-replica": {
+      "publicKey": "exVoNYd63l1irjhOZ3lnx6ekGjPOVFWG",
+      "popupOptionId": "4cadc640-d374-11f1-90cc-b367d26c08ff",
+      "describe": "DEV replica of a client app popup (MF-3263): time_on_page 5 s, cooldown SHOWED/PARTIAL/COMPLETED 7 days, segments lang en + path /, centered. Survey 307a1410-d374-11f1-90cc-b367d26c08ff (da): rating 1-5 'Meget dårlig'/'Meget god', long text, yes/no, email; linear, without the branching of the original",
+      "title": "Hvordan vil du vurdere din oplevelse med appen?"
+    },
+    "client-replica-da": {
+      "publicKey": "Ng2ry7jPUeLmbOIu1sxBo59jp7GwDuWz",
+      "popupOptionId": "f0db1500-d375-11f1-90cc-b367d26c08ff",
+      "describe": "same as client-replica but segments.lang da (path /): with SDK >= 0.7.4 it shows with lang=da and not with lang=en",
+      "title": "Hvordan vil du vurdere din oplevelse med appen?"
+    },
+    "client-exact": {
+      "publicKey": "NhvpAyYxpyPWz09XdxXoXWmOpzUNicGo",
+      "popupOptionId": "5fefd6f0-d782-11f1-ab45-8bbb0ec1d341",
+      "describe": "Exact DEV copy of a client app popup as in prod on 3-nov-2026 (event jhgjgjhg, cooldown SHOWED 14 / PARTIAL 30 / COMPLETED 30 days, segments path / and no lang, centered). Survey 9c449790-d781-11f1-ab45-8bbb0ec1d341 (da), same questions, branching and colours as the client's: rating 1-5, a follow-up text per rating band (1-2 / 3-4 / 5), yes/no, text, yes/no, email. The client logo is not uploaded in DEV",
+      "title": "Hvordan vil du vurdere din oplevelse med appen?",
+      "events": ["jhgjgjhg"]
+    },
+    "client-exact-launch": {
+      "publicKey": "9C1hiLhDp7Jq5hKyFyjppXiEJ1DfeTAl",
+      "popupOptionId": "f5e95a60-d781-11f1-ab45-8bbb0ec1d341",
+      "describe": "Same as client-exact but on time_on_page 5 s, the client's setup before 30-oct: the popup opens by itself at app start (the case of the double popup on 0.7.5)",
+      "title": "Hvordan vil du vurdere din oplevelse med appen?"
     },
     "fault-popups-error": {
       "publicKey": "invalid-key-mf3244",
       "describe": "fault: unknown public key, GET /sdk/{key}/popups answers 406 and no popup loads",
       "title": null
+    },
+    "e2e-scroll": {
+      "publicKey": "HvCsLnjP6GKmWPCr2eIdCqQOb5TQM08X",
+      "popupOptionId": "579129f0-d79b-11f1-a3ed-61e4c5f76af9",
+      "describe": "scroll trigger 50 % on /shop, simple survey. The Lab buttons scroll:30 / scroll:60 are the host reporting onScroll()",
+      "title": "E2E · Scroll 50%",
+      "events": ["scroll:30", "scroll:60"]
+    },
+    "e2e-multi-trigger": {
+      "publicKey": "CLEm9sDMAXtNgjGP81HjHPHEfuxNENwd",
+      "popupOptionId": "5811cba0-d79b-11f1-a3ed-61e4c5f76af9",
+      "describe": "two triggers on one popup: event e2e_multi or click help-button",
+      "title": "E2E · Event or click",
+      "events": ["e2e_multi"]
+    },
+    "e2e-inactive": {
+      "publicKey": "1oZJ0mr5ApfYY1jvBK4uErp9DYKvyA7i",
+      "popupOptionId": "58924640-d79b-11f1-a3ed-61e4c5f76af9",
+      "describe": "popup on event e2e_inactive set to DEPRECATED (inactive): the API returns no popup, nothing shows",
+      "title": "E2E · Inactive popup",
+      "events": ["e2e_inactive"]
+    },
+    "e2e-cooldown-partial": {
+      "publicKey": "gi7WRXyCLG0tr12SzaHvKvYgDkbbnWYx",
+      "popupOptionId": "592dea00-d79b-11f1-a3ed-61e4c5f76af9",
+      "describe": "event e2e_partial, cooldown PARTIAL 1 day, complex survey: after a partial answer it does not show again",
+      "title": "E2E · Cooldown after a partial answer",
+      "events": ["e2e_partial"]
+    },
+    "e2e-cooldown-completed": {
+      "publicKey": "GrRj95spi2mVHP6L89eZPVpoQTYA4hHY",
+      "popupOptionId": "379a0720-d79b-11f1-a3ed-61e4c5f76af9",
+      "describe": "event e2e_completed, cooldown COMPLETED 1 day, simple survey: after completing it does not show again",
+      "title": "E2E · Cooldown after completing",
+      "events": ["e2e_completed"]
+    },
+    "e2e-two-popups": {
+      "publicKey": "tLf3qmBo93Cv3sXn2DiEyFiCRrPUD8j9",
+      "popupOptionId": "59ad7a40-d79b-11f1-a3ed-61e4c5f76af9",
+      "describe": "two popups (A and B) on the same event e2e_two: one at a time",
+      "title": "E2E · Popup A",
+      "events": ["e2e_two"]
+    },
+    "e2e-position-top": {
+      "publicKey": "mH6Tvjc74ZHhgCAa4nFEn6bCiaZOmwMv",
+      "popupOptionId": "5a7c8a10-d79b-11f1-a3ed-61e4c5f76af9",
+      "describe": "event e2e_position, position top-right",
+      "title": "E2E · Top right",
+      "events": ["e2e_position"]
+    },
+    "e2e-position-bottom": {
+      "publicKey": "awtNfViux4DpGQumeZK4seGqq9qbS3IK",
+      "popupOptionId": "5afc6870-d79b-11f1-a3ed-61e4c5f76af9",
+      "describe": "event e2e_position, position bottom-left",
+      "title": "E2E · Bottom left",
+      "events": ["e2e_position"]
+    },
+    "e2e-dark-font": {
+      "publicKey": "U8tVYbrHWK5drRWaWosSe8fGHWwzVpFH",
+      "popupOptionId": "5b77b2f0-d79b-11f1-a3ed-61e4c5f76af9",
+      "describe": "event e2e_style, dark theme, font family Georgia",
+      "title": "E2E · Dark theme and custom font",
+      "events": ["e2e_style"]
     }
   }
 }

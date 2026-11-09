@@ -17,7 +17,8 @@ import 'shop.dart';
 //
 // Launch arguments (Maestro `launchApp: arguments`, `adb shell am start --es`, `-key value` on iOS)
 // override the saved run: scenario, nav (history|silent), lang, load (immediate|consent), user,
-// start (home|shop|cart|checkout|account).
+// start (home|shop|cart|checkout|account); one-shot: consent (all|necessary), instances (1|2),
+// event (fired right after the first setPath).
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,30 +42,91 @@ class SdkHost {
     if (initialized.value) return;
     initialized.value = true;
     final c = config;
-    Lab.log('sdk', 'init $nativeSdkVersion (Flutter) env=Development api=$devAPI');
-    Lab.log('sdk', 'scenario=${c.scenario} key=$publicKey nav=${c.nav} lang=${c.lang}');
+    Lab.log(
+      'sdk',
+      'init $nativeSdkVersion (Flutter) env=Development api=$devAPI',
+    );
+    Lab.log(
+      'sdk',
+      'scenario=${c.scenario} key=$publicKey nav=${c.nav} lang=${c.lang}',
+    );
     _events = DeepdotsPopups.events.listen((e) {
       switch (e.type) {
         case 'popup_shown':
           Lab.log('popup', 'shown id=${e.popupId} survey=${e.surveyId}');
+          Lab.shown.value++;
         case 'popup_clicked':
-          Lab.log('popup', 'clicked id=${e.popupId} action=${e.extra['action'] ?? ''}');
+          Lab.log(
+            'popup',
+            'clicked id=${e.popupId} action=${e.extra['action'] ?? ''}',
+          );
         case 'survey_completed':
           Lab.log('popup', 'survey_completed survey=${e.surveyId}');
+          Lab.completed.value++;
       }
     });
-    await DeepdotsPopups.init(
-      publicKey: publicKey,
-      environment: DeepdotsEnvironment.development,
-      userId: c.user.isEmpty ? null : c.user,
-      language: c.lang,
-      debug: true,
-    );
+    final first = _initSdk();
+    if (c.instances == '2') {
+      Lab.log('sdk', 'second init (same options)');
+      await Future.wait([first, _initSdk()]);
+    } else {
+      await first;
+    }
     Lab.log('sdk', 'userId=${await DeepdotsPopups.getUserId() ?? '-'}');
+    // The route's setPath() reported before init() was sent by the plugin when init() finished,
+    // so this is right after the first setPath(), usually before the popups have loaded.
+    if (c.startEvent.isNotEmpty && c.nav != 'silent') {
+      Lab.log(
+        'host',
+        'triggerEvent(${c.startEvent}) right after the first setPath',
+      );
+      await DeepdotsPopups.triggerEvent(c.startEvent);
+    }
+  }
+
+  Future<void> _initSdk() => DeepdotsPopups.init(
+    publicKey: publicKey,
+    environment: DeepdotsEnvironment.development,
+    userId: config.user.isEmpty ? null : config.user,
+    language: config.lang,
+    debug: true,
+  );
+
+  /// A host that calls init() again (e.g. from a second entry point): the SDK must ignore it.
+  Future<void> initAgain() async {
+    if (!initialized.value) return;
+    Lab.log('sdk', 'init again (same options)');
+    await _initSdk();
   }
 
   void triggerEvent(String name) {
     if (initialized.value) DeepdotsPopups.triggerEvent(name);
+  }
+
+  /// A Lab host event. `scroll:NN` is the host reporting how far the screen is scrolled.
+  void hostEvent(String name) {
+    final pct = name.startsWith('scroll:')
+        ? int.tryParse(name.substring(7))
+        : null;
+    if (pct != null) {
+      Lab.log('host', 'onScroll($pct)');
+      if (initialized.value) DeepdotsPopups.onScroll(pct);
+    } else {
+      Lab.log('host', 'triggerEvent($name)');
+      triggerEvent(name);
+    }
+  }
+
+  /// Duplicate and concurrent triggers: the same event twice in a row (a double tap) and once
+  /// more 3 s later, while its popup is open. The SDK must show the popup once.
+  void burst(String name) {
+    Lab.log('host', 'triggerEvent($name) x2 now + 1 in 3 s');
+    triggerEvent(name);
+    triggerEvent(name);
+    Future<void>.delayed(const Duration(seconds: 3), () {
+      Lab.log('host', 'triggerEvent($name) again (popup open)');
+      triggerEvent(name);
+    });
   }
 
   void triggerClick(String id) {
@@ -92,7 +154,9 @@ class _NordlyAppState extends State<NordlyApp> {
     navigator: _navigator,
     flash: (message) => _messenger.currentState
       ?..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message), duration: const Duration(seconds: 2))),
+      ..showSnackBar(
+        SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+      ),
   );
   late final AppLifecycleListener _lifecycle;
 
@@ -106,8 +170,12 @@ class _NordlyAppState extends State<NordlyApp> {
       onHide: () => Lab.log('life', 'background'),
       onShow: () => Lab.log('life', 'foreground'),
     );
-    if (_config.load == 'immediate' || _config.consent == 'all') widget.host.init();
-    if (_config.consent == null) WidgetsBinding.instance.addPostFrameCallback((_) => _askConsent());
+    if (_config.load == 'immediate' || _config.consent == 'all') {
+      widget.host.init();
+    }
+    if (_config.consent == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _askConsent());
+    }
   }
 
   @override
@@ -127,8 +195,14 @@ class _NordlyAppState extends State<NordlyApp> {
         title: const Text('Cookies'),
         content: const Text('We use cookies to improve your experience.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Necessary only')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Accept all')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Necessary only'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Accept all'),
+          ),
         ],
       ),
     );
@@ -151,7 +225,11 @@ class _NordlyAppState extends State<NordlyApp> {
       debugShowCheckedModeBanner: false,
       navigatorKey: _navigator,
       scaffoldMessengerKey: _messenger,
-      theme: ThemeData(colorSchemeSeed: ink, useMaterial3: true, scaffoldBackgroundColor: const Color(0xFFFAFAFA)),
+      theme: ThemeData(
+        colorSchemeSeed: ink,
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFFAFAFA),
+      ),
       // The plugin's observer is all a host needs: every named route goes to setPath().
       // `nav=silent` leaves it out, so the SDK never sees the navigation.
       navigatorObservers: [
@@ -159,7 +237,10 @@ class _NordlyAppState extends State<NordlyApp> {
         if (!silent) DeepdotsNavigatorObserver(),
       ],
       initialRoute: Shop.startRoute(_config.start),
-      onGenerateInitialRoutes: (initial) => [if (initial == '/checkout') _shop.route('/cart'), _shop.route(initial)],
+      onGenerateInitialRoutes: (initial) => [
+        if (initial == '/checkout') _shop.route('/cart'),
+        _shop.route(initial),
+      ],
       onGenerateRoute: (settings) => _shop.route(settings.name ?? '/'),
       builder: (context, child) => Material(
         color: const Color(0xFFFAFAFA),
@@ -173,18 +254,39 @@ class _NordlyAppState extends State<NordlyApp> {
               child: Semantics(
                 container: true,
                 explicitChildNodes: true,
-                child: MediaQuery.removePadding(context: context, removeTop: true, child: child!),
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  child: child!,
+                ),
               ),
             ),
             const _LabLog(),
             ValueListenableBuilder(
               valueListenable: _route,
-              builder: (_, route, _) => route == '/checkout' ? const SizedBox.shrink() : _shop.tabBar(route),
+              builder: (_, route, _) => route == '/checkout'
+                  ? const SizedBox.shrink()
+                  : _shop.tabBar(route),
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// Rapid navigation (faster than Maestro can tap): Cart → Checkout → Cart, three times, 250 ms
+  /// per screen, ending on Cart.
+  Future<void> _rapidCheckout() async {
+    Lab.log('host', 'rapid nav: cart ⇄ checkout x3');
+    final nav = _navigator.currentState;
+    if (nav == null) return;
+    nav.pushNamedAndRemoveUntil('/cart', (_) => false);
+    for (var i = 0; i < 3; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      nav.pushNamed('/checkout');
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      nav.pop();
+    }
   }
 
   void _openLab() {
@@ -195,8 +297,19 @@ class _NordlyAppState extends State<NordlyApp> {
           host: widget.host,
           onEvent: (event) {
             _navigator.currentState?.pop();
-            Lab.log('host', 'triggerEvent($event)');
-            widget.host.triggerEvent(event);
+            widget.host.hostEvent(event);
+          },
+          onBurst: (event) {
+            _navigator.currentState?.pop();
+            widget.host.burst(event);
+          },
+          onInitAgain: () {
+            _navigator.currentState?.pop();
+            widget.host.initAgain();
+          },
+          onRapidCheckout: () {
+            _navigator.currentState?.pop();
+            _rapidCheckout();
           },
         ),
       ),
@@ -216,19 +329,25 @@ class _RouteLog extends NavigatorObserver {
   void _changed(Route<dynamic>? route) {
     final name = route?.settings.name;
     if (route is! PageRoute || name == null || name == _previous) return;
-    Lab.log('nav', '${_previous ?? 'launch'} → $name${silent ? ' (silent: no setPath)' : ''}');
+    Lab.log(
+      'nav',
+      '${_previous ?? 'launch'} → $name${silent ? ' (silent: no setPath)' : ''}',
+    );
     _previous = name;
     current.value = name;
   }
 
   @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) => _changed(route);
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _changed(route);
 
   @override
-  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) => _changed(newRoute);
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      _changed(newRoute);
 
   @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _changed(previousRoute);
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _changed(previousRoute);
 }
 
 class _LabBar extends StatelessWidget {
@@ -240,57 +359,89 @@ class _LabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const style = TextStyle(fontSize: 12, color: labText);
-    return Semantics(
-      container: true,
-      explicitChildNodes: true,
-      child: Container(
-        color: labBg,
-        padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top, left: 12),
-        child: SizedBox(
-          height: 40,
-          child: Row(
-            children: [
-              const Text(
-                'SDK Lab',
-                style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(width: 8),
-              Semantics(
-                identifier: 'lab-sdk-version',
-                container: true,
-                child: const Text('$nativeSdkVersion · Flutter', style: style),
-              ),
-              const SizedBox(width: 8),
-              Semantics(
-                identifier: 'lab-env',
-                container: true,
-                child: const Text('DEV', style: TextStyle(fontSize: 12, color: Color(0xFF6EE8A8))),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Semantics(
-                  identifier: 'lab-scenario',
-                  container: true,
-                  child: Text(
-                    host.config.scenario,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF9E9E9E)),
+    // Test chrome, not app UI: fixed text size, so large system text (flows with `text-size:
+    // large`) does not push the ids out of the bar.
+    return MediaQuery.withNoTextScaling(
+      child: Semantics(
+        container: true,
+        explicitChildNodes: true,
+        child: Container(
+          color: labBg,
+          padding: EdgeInsets.only(
+            top: MediaQuery.paddingOf(context).top,
+            left: 12,
+          ),
+          child: SizedBox(
+            height: 40,
+            child: Row(
+              children: [
+                const Text(
+                  'SDK Lab',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-              const Spacer(),
-              Semantics(
-                identifier: 'lab-open',
-                container: true,
-                // A label, not a tooltip: the Lab bar sits above the Navigator, with no Overlay.
-                label: 'Open SDK Lab',
-                child: IconButton(
-                  onPressed: onOpen,
-                  icon: const Icon(Icons.settings, color: labText, size: 20),
+                const SizedBox(width: 8),
+                Semantics(
+                  identifier: 'lab-sdk-version',
+                  container: true,
+                  child: const Text(
+                    '$nativeSdkVersion · Flutter',
+                    style: style,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Semantics(
+                  identifier: 'lab-env',
+                  container: true,
+                  child: const Text(
+                    'DEV',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF6EE8A8)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Semantics(
+                    identifier: 'lab-scenario',
+                    container: true,
+                    child: Text(
+                      host.config.scenario,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF9E9E9E),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Semantics(
+                  identifier: 'lab-counts',
+                  container: true,
+                  child: ListenableBuilder(
+                    listenable: Listenable.merge([Lab.shown, Lab.completed]),
+                    builder: (_, _) => Text(
+                      'shown ${Lab.shown.value} · done ${Lab.completed.value}',
+                      style: style,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Semantics(
+                  identifier: 'lab-open',
+                  container: true,
+                  // A label, not a tooltip: the Lab bar sits above the Navigator, with no Overlay.
+                  label: 'Open SDK Lab',
+                  child: IconButton(
+                    onPressed: onOpen,
+                    icon: const Icon(Icons.settings, color: labText, size: 20),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -315,12 +466,17 @@ class _LabLog extends StatelessWidget {
           builder: (_, lines, _) => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final line in lines.length > 3 ? lines.sublist(lines.length - 3) : lines)
+              for (final line
+                  in lines.length > 3 ? lines.sublist(lines.length - 3) : lines)
                 Text(
                   line,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 10, fontFamily: 'monospace', color: labText),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontFamily: 'monospace',
+                    color: labText,
+                  ),
                 ),
             ],
           ),

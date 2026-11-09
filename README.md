@@ -4,11 +4,9 @@ Deepdots popups and surveys for Flutter apps. The plugin wraps the native Deepdo
 and iOS: targeting, triggers, sessions, analytics and the survey UI all run in the native SDK. The
 plugin exposes them to Dart and connects them to Flutter's navigation and app lifecycle.
 
-> **Early access.** The API may still change before 1.0. Pin the version you install.
-
 | | |
 |---|---|
-| Native SDK | `0.7.6` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
+| Native SDK | `0.7.9` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
 | Flutter | 3.24 or later (Dart 3.5) |
 | Android | minSdk 24, compileSdk 36 (apps from Flutter 3.24–3.32 need a newer Android toolchain, see [INSTALL.md](INSTALL.md)) |
 | iOS | 13.0 or later (Swift Package Manager from Flutter 3.41; CocoaPods on all) |
@@ -18,10 +16,17 @@ plugin exposes them to Dart and connects them to Flutter's navigation and app li
 ```yaml
 # pubspec.yaml
 dependencies:
+  deepdots_popups: ^1.0.1
+```
+
+Or from git, pinned to a release tag:
+
+```yaml
+dependencies:
   deepdots_popups:
     git:
       url: https://github.com/MagicFeedback/deepdots-popup-flutter-sdk.git
-      ref: v0.1.0-beta.2
+      ref: v1.0.1
 ```
 
 On iOS, exclude the Intel simulator architecture (one line in two xcconfig files, or a few lines
@@ -70,16 +75,23 @@ scrollable body wrapped in `DeepdotsScrollListener`.
 
 ## Known limitations
 
+- A dialog or bottom sheet drawn by Flutter (`showDialog`, `showModalBottomSheet`) does not hold a
+  popup back: the native SDK waits only for native dialogs, so a popup on a timer (for example 5 s
+  after launch) can open over your own consent dialog. If your app asks for consent at start, call
+  `DeepdotsPopups.init()` after the user answers it.
 - `setLanguage` changes the texts from the next popup on. The language of analytics is set in
   `init()`.
-- iOS: a popup triggered in the first instant after launch may not be shown although it is counted
-  as shown. Trigger popups after the first frame. A fix is coming in the native SDK.
 
 ## Example
 
 [`example/`](example) is a small shop app that uses every feature of the plugin against a Deepdots
 test account. [example/README.md](example/README.md) explains how to run it.
 
+## Documentation
+
+Full guide: [docs.deepdots.com/popup-flutter](https://docs.deepdots.com/popup-flutter/). Issues:
+[GitHub](https://github.com/MagicFeedback/deepdots-popup-flutter-sdk/issues).
+
 ## License
 
-See [LICENSE](LICENSE).
+Apache License 2.0, see [LICENSE](LICENSE).

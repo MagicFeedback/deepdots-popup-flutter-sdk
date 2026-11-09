@@ -21,7 +21,7 @@ import UIKit
 /// `nordly/lab` (lib/lab.dart): the run's launch arguments (Maestro `launchApp: arguments`,
 /// `-key value`, `key value` or `key=value`) and the saved run config.
 enum NordlyLab {
-  private static let keys = ["scenario", "nav", "lang", "load", "user", "start"]
+  private static let keys = ["scenario", "nav", "lang", "load", "user", "start", "consent", "instances", "event"]
   private static let defaults = UserDefaults(suiteName: "lab")!
 
   static func register(messenger: FlutterBinaryMessenger) {

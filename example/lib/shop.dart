@@ -42,11 +42,16 @@ class Shop {
   };
 
   Route<void> route(String name) {
-    final product = products.where((p) => '/product/${p.id}' == name).firstOrNull;
+    final product = products
+        .where((p) => '/product/${p.id}' == name)
+        .firstOrNull;
     const screens = {'/shop', '/cart', '/checkout', '/account'};
     final path = product != null ? name : (screens.contains(name) ? name : '/');
     final (title, body) = switch (path) {
-      _ when product != null => (product.name, _ProductScreen(shop: this, product: product)),
+      _ when product != null => (
+        product.name,
+        _ProductScreen(shop: this, product: product),
+      ),
       '/shop' => ('Shop', _ShopScreen(shop: this)),
       '/cart' => ('Cart', _CartScreen(shop: this)),
       '/checkout' => ('Checkout', _CheckoutScreen(shop: this)),
@@ -74,7 +79,11 @@ class Shop {
                 ),
               Text(
                 title,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: ink),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: ink,
+                ),
               ),
             ],
           ),
@@ -85,7 +94,8 @@ class Shop {
   }
 
   void push(String name) => navigator.currentState?.pushNamed(name);
-  void tab(String name) => navigator.currentState?.pushNamedAndRemoveUntil(name, (_) => false);
+  void tab(String name) =>
+      navigator.currentState?.pushNamedAndRemoveUntil(name, (_) => false);
 
   Widget tabBar(String current) {
     final root = _rootOf(current);
@@ -123,7 +133,12 @@ class Shop {
             children: [
               item('Home', Icons.home, 'tab-home', '/'),
               item('Shop', Icons.shopping_bag, 'tab-shop', '/shop'),
-              item('Cart (${items.length})', Icons.shopping_cart, 'tab-cart', '/cart'),
+              item(
+                'Cart (${items.length})',
+                Icons.shopping_cart,
+                'tab-cart',
+                '/cart',
+              ),
               item('Account', Icons.account_circle, 'tab-account', '/account'),
             ],
           ),
@@ -132,7 +147,9 @@ class Shop {
     );
   }
 
-  String _rootOf(String route) => route.startsWith('/product/') ? '/shop' : (route == '/checkout' ? '/cart' : route);
+  String _rootOf(String route) => route.startsWith('/product/')
+      ? '/shop'
+      : (route == '/checkout' ? '/cart' : route);
 
   int get total => cart.value.fold(0, (sum, p) => sum + p.price);
 
@@ -142,28 +159,39 @@ class Shop {
       builder: (_) => _RateSheet(product: product),
     );
     if (stars == null) return;
-    Lab.log('host', 'rate ${product.id} stars=$stars → triggerEvent(rate_product)');
+    Lab.log(
+      'host',
+      'rate ${product.id} stars=$stars → triggerEvent(rate_product)',
+    );
     host.triggerEvent('rate_product');
   }
 }
 
-Widget primaryButton(String title, String id, VoidCallback? onPressed) => Semantics(
-  identifier: id,
-  child: FilledButton(
-    onPressed: onPressed,
-    style: FilledButton.styleFrom(backgroundColor: ink, minimumSize: const Size.fromHeight(48)),
-    child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-  ),
-);
+Widget primaryButton(String title, String id, VoidCallback? onPressed) =>
+    Semantics(
+      identifier: id,
+      child: FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: ink,
+          minimumSize: const Size.fromHeight(48),
+        ),
+        child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      ),
+    );
 
-Widget secondaryButton(String title, String id, VoidCallback onPressed) => Semantics(
-  identifier: id,
-  child: OutlinedButton(
-    onPressed: onPressed,
-    style: OutlinedButton.styleFrom(foregroundColor: ink, minimumSize: const Size.fromHeight(48)),
-    child: Text(title),
-  ),
-);
+Widget secondaryButton(String title, String id, VoidCallback onPressed) =>
+    Semantics(
+      identifier: id,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: ink,
+          minimumSize: const Size.fromHeight(48),
+        ),
+        child: Text(title),
+      ),
+    );
 
 Widget _productRow(Product p, VoidCallback? onTap) => Semantics(
   identifier: 'product-${p.id}',
@@ -176,7 +204,10 @@ Widget _productRow(Product p, VoidCallback? onTap) => Semantics(
           Container(
             width: 56,
             height: 56,
-            decoration: BoxDecoration(color: _swatch, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: _swatch,
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -184,7 +215,10 @@ Widget _productRow(Product p, VoidCallback? onTap) => Semantics(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(p.name, style: const TextStyle(color: ink)),
-                Text(p.detail, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                Text(
+                  p.detail,
+                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                ),
               ],
             ),
           ),
@@ -204,14 +238,21 @@ class _HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16),
     children: [
-      const Text('New season, same rain.', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600)),
+      const Text(
+        'New season, same rain.',
+        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+      ),
       const SizedBox(height: 12),
-      const Text('Free shipping over 60 € · 30-day returns', style: TextStyle(color: Colors.black54)),
+      const Text(
+        'Free shipping over 60 € · 30-day returns',
+        style: TextStyle(color: Colors.black54),
+      ),
       const SizedBox(height: 12),
       primaryButton('Shop new arrivals', 'home-shop', () => shop.tab('/shop')),
       const SizedBox(height: 20),
       const Text('Featured', style: TextStyle(fontWeight: FontWeight.w600)),
-      for (final p in products.take(2)) _productRow(p, () => shop.push('/product/${p.id}')),
+      for (final p in products.take(2))
+        _productRow(p, () => shop.push('/product/${p.id}')),
     ],
   );
 }
@@ -226,7 +267,10 @@ class _ShopScreen extends StatelessWidget {
   Widget build(BuildContext context) => DeepdotsScrollListener(
     child: ListView(
       padding: const EdgeInsets.all(16),
-      children: [for (final p in products) _productRow(p, () => shop.push('/product/${p.id}'))],
+      children: [
+        for (final p in products)
+          _productRow(p, () => shop.push('/product/${p.id}')),
+      ],
     ),
   );
 }
@@ -247,7 +291,10 @@ class _ProductScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           spacing: 8,
           children: [
-            Text(product.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600)),
+            Text(
+              product.name,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+            ),
             Text('${product.price},00 €'),
             Text(product.detail, style: const TextStyle(color: Colors.black54)),
             const SizedBox(height: 8),
@@ -257,11 +304,20 @@ class _ProductScreen extends StatelessWidget {
                 Expanded(
                   child: primaryButton('Add to cart', 'add-to-cart', () {
                     shop.cart.value = [...shop.cart.value, product];
-                    Lab.log('host', 'add to cart ${product.id} (cart ${shop.cart.value.length})');
+                    Lab.log(
+                      'host',
+                      'add to cart ${product.id} (cart ${shop.cart.value.length})',
+                    );
                     shop.flash('Added to cart');
                   }),
                 ),
-                Expanded(child: secondaryButton('Rate', 'rate-product', () => shop.rate(context, product))),
+                Expanded(
+                  child: secondaryButton(
+                    'Rate',
+                    'rate-product',
+                    () => shop.rate(context, product),
+                  ),
+                ),
               ],
             ),
           ],
@@ -284,11 +340,18 @@ class _CartScreen extends StatelessWidget {
       children: [
         Semantics(
           identifier: 'cart-count',
-          child: Text('${items.length} items', style: const TextStyle(color: Colors.black54)),
+          child: Text(
+            '${items.length} items',
+            style: const TextStyle(color: Colors.black54),
+          ),
         ),
         for (final p in items) _productRow(p, null),
         const SizedBox(height: 12),
-        primaryButton('Go to checkout', 'go-checkout', items.isEmpty ? null : () => shop.push('/checkout')),
+        primaryButton(
+          'Go to checkout',
+          'go-checkout',
+          items.isEmpty ? null : () => shop.push('/checkout'),
+        ),
       ],
     ),
   );
@@ -306,8 +369,14 @@ class _CheckoutScreen extends StatelessWidget {
         title: const Text('Place order?'),
         content: Text('Total ${shop.total},00 €'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirm')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirm'),
+          ),
         ],
       ),
     );
@@ -322,26 +391,38 @@ class _CheckoutScreen extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16),
     children: [
-      const Text('Cart › Shipping › Payment', style: TextStyle(fontSize: 12, color: Colors.black54)),
+      const Text(
+        'Cart › Shipping › Payment',
+        style: TextStyle(fontSize: 12, color: Colors.black54),
+      ),
       const SizedBox(height: 12),
       Semantics(
         identifier: 'checkout-email',
         child: TextFormField(
           initialValue: 'qa+flutter@deepdots.dev',
-          decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+          decoration: const InputDecoration(
+            labelText: 'Email',
+            border: OutlineInputBorder(),
+          ),
         ),
       ),
       const SizedBox(height: 12),
       TextFormField(
         initialValue: '1 Test Street',
-        decoration: const InputDecoration(labelText: 'Address', border: OutlineInputBorder()),
+        decoration: const InputDecoration(
+          labelText: 'Address',
+          border: OutlineInputBorder(),
+        ),
       ),
       const SizedBox(height: 12),
       Row(
         children: [
           const Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
           const Spacer(),
-          Text('${shop.total},00 €', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            '${shop.total},00 €',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
       const SizedBox(height: 12),
@@ -362,11 +443,16 @@ class _AccountScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: 12,
       children: [
-        const Text('Test User', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+        const Text(
+          'Test User',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        ),
         ValueListenableBuilder(
           valueListenable: shop.host.initialized,
           builder: (_, initialized, _) => FutureBuilder(
-            future: initialized ? DeepdotsPopups.getUserId() : Future.value(null),
+            future: initialized
+                ? DeepdotsPopups.getUserId()
+                : Future.value(null),
             builder: (_, user) => Semantics(
               identifier: 'account-user-id',
               child: Text(
@@ -409,7 +495,10 @@ class _RateSheetState extends State<_RateSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: 14,
       children: [
-        Text('Rate the ${widget.product.name}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+        Text(
+          'Rate the ${widget.product.name}',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
         Row(
           spacing: 8,
           children: [
@@ -425,7 +514,9 @@ class _RateSheetState extends State<_RateSheet> {
                       padding: EdgeInsets.zero,
                       backgroundColor: n == _stars ? ink : Colors.white,
                       foregroundColor: n == _stars ? Colors.white : ink,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     child: Text('$n'),
                   ),
@@ -433,7 +524,11 @@ class _RateSheetState extends State<_RateSheet> {
               ),
           ],
         ),
-        primaryButton('Submit rating', 'submit-rating', () => Navigator.pop(context, _stars)),
+        primaryButton(
+          'Submit rating',
+          'submit-rating',
+          () => Navigator.pop(context, _stars),
+        ),
         const SizedBox(height: 8),
       ],
     ),

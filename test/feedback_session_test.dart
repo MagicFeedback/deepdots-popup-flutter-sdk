@@ -7,7 +7,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const channel = MethodChannel('com.deepdots/popups');
   const codec = StandardMethodCodec();
-  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   final calls = <MethodCall>[];
 
   setUp(() async {
@@ -21,7 +22,8 @@ void main() {
 
   tearDown(() => messenger.setMockMethodCallHandler(channel, null));
 
-  Future<void> fromNative(Map<String, Object?> payload) => messenger.handlePlatformMessage(
+  Future<void> fromNative(Map<String, Object?> payload) =>
+      messenger.handlePlatformMessage(
         channel.name,
         codec.encodeMethodCall(MethodCall('onFeedbackSession', payload)),
         (_) {},
@@ -32,13 +34,15 @@ void main() {
     expect(calls.last.method, 'getFeedbackSessionId');
   });
 
-  test('onFeedbackSession llega a feedbackSessions con open y closed', () async {
+  test('onFeedbackSession llega a feedbackSessions con open y closed',
+      () async {
     final received = <DeepdotsFeedbackSession>[];
     final sub = DeepdotsPopups.feedbackSessions.listen(received.add);
     await fromNative({'sessionId': 'fs-1', 'status': 'open'});
     await fromNative({'sessionId': 'fs-1', 'status': 'closed'});
     await pumpEventQueue();
     await sub.cancel();
-    expect(received.map((s) => '${s.sessionId}:${s.closed}'), ['fs-1:false', 'fs-1:true']);
+    expect(received.map((s) => '${s.sessionId}:${s.closed}'),
+        ['fs-1:false', 'fs-1:true']);
   });
 }
