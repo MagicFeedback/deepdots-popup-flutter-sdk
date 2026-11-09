@@ -1,3 +1,20 @@
+## 1.1.0
+
+* Native Deepdots SDK 0.7.11 (was 0.7.9; 0.7.10 was never published). Changes that reach
+  Flutter apps:
+  * Popups draw the survey with the survey version assigned in the Admin when the native SDK
+    supports its survey SDK (2.2.38, 2.2.39); otherwise the bundled one (2.2.39, was 2.2.31).
+    See docs.deepdots.com/popup-native/reference/survey-compatibility/.
+  * The popup's own texts in the 24 official EU languages, and error notices in the survey's
+    language.
+  * "Please enter a valid email address." for an email with a typo.
+  * The batch that closes an analytics session is resent on the next `init()` if the app died
+    before it was sent.
+* Popup responses and analytics say they came from this plugin: `deepdots_sdk=flutter@<version>`
+  (and `deepdots_channel=popup` on responses), with the native SDK in `deepdots_sdk_core`
+  (`android@0.7.11` / `ios@0.7.11`). The version comes from `lib/src/version.dart`, which a test
+  keeps equal to `version:` in pubspec.yaml.
+
 ## 1.0.1
 
 Same plugin and native SDK as 1.0.0 (0.7.9); first version on pub.dev.

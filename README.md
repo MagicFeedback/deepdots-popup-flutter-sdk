@@ -6,7 +6,7 @@ plugin exposes them to Dart and connects them to Flutter's navigation and app li
 
 | | |
 |---|---|
-| Native SDK | `0.7.9` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
+| Native SDK | `0.7.11` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
 | Flutter | 3.24 or later (Dart 3.5) |
 | Android | minSdk 24, compileSdk 36 (apps from Flutter 3.24–3.32 need a newer Android toolchain, see [INSTALL.md](INSTALL.md)) |
 | iOS | 13.0 or later (Swift Package Manager from Flutter 3.41; CocoaPods on all) |
@@ -16,7 +16,7 @@ plugin exposes them to Dart and connects them to Flutter's navigation and app li
 ```yaml
 # pubspec.yaml
 dependencies:
-  deepdots_popups: ^1.0.1
+  deepdots_popups: ^1.1.0
 ```
 
 Or from git, pinned to a release tag:
@@ -26,7 +26,7 @@ dependencies:
   deepdots_popups:
     git:
       url: https://github.com/MagicFeedback/deepdots-popup-flutter-sdk.git
-      ref: v1.0.1
+      ref: v1.1.0
 ```
 
 On iOS, exclude the Intel simulator architecture (one line in two xcconfig files, or a few lines

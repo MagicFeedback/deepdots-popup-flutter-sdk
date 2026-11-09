@@ -52,7 +52,7 @@ see it again, as the Maestro flows do with `clearState`.
 # from a checkout of deepdots-popup-mobile-native-sdk
 cp -R test-apps/maestro test-apps/scripts /tmp/nordly-flutter/
 grep -rl com.deepdots.testapp /tmp/nordly-flutter | xargs sed -i '' 's/com\.deepdots\.testapp/com.deepdots.flutterexample/g'
-DEVICE=<udid or serial> /tmp/nordly-flutter/scripts/run-maestro.sh ios 0.7.9 out/ios
+DEVICE=<udid or serial> /tmp/nordly-flutter/scripts/run-maestro.sh ios 0.7.11 out/ios
 ```
 
 30 Oct 2026, plugin on native 0.7.5: all flows pass on the iOS simulator (iPhone 17 Pro, iOS

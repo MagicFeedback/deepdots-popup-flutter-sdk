@@ -8,7 +8,7 @@ const devAPI = 'https://api-dev.deepdots.com';
 
 /// Native SDK the plugin wraps (android/build.gradle.kts, ios/deepdots_popups/Package.swift and
 /// the podspec). Shown in the Lab bar; keep it in sync when the plugin moves to another version.
-const nativeSdkVersion = '0.7.9';
+const nativeSdkVersion = '0.7.11';
 
 /// Launch arguments and the saved run config live on the native side (example's MainActivity /
 /// AppDelegate): Maestro passes `launchApp: arguments` as intent extras / process arguments.

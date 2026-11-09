@@ -6,8 +6,8 @@ plugin exposes them to Dart and wires in Flutter's navigation and app lifecycle.
 
 | | |
 |---|---|
-| Plugin | `1.0.1` |
-| Native SDK | `0.7.9` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
+| Plugin | `1.1.0` |
+| Native SDK | `0.7.11` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
 | Flutter | 3.24 or later (Dart 3.5). Build checked on every stable release from 3.24 to 3.47 |
 | Android | minSdk 24, compileSdk 36; Android Gradle plugin 8.9.1, Gradle 8.11.1, Kotlin 2.1 or later |
 | iOS | 13.0 or later; Swift Package Manager needs Flutter 3.41 or later, CocoaPods works on all |
@@ -24,10 +24,10 @@ or in `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  deepdots_popups: ^1.0.1
+  deepdots_popups: ^1.1.0
 ```
 
-`^1.0.1` takes every 1.x release (fixes and new features) with `flutter pub upgrade`, never a 2.0.
+`^1.1.0` takes every 1.x release (fixes and new features) with `flutter pub upgrade`, never a 2.0.
 
 **Alternative: from git.** Apps that already install it from GitHub can keep doing so. Pin `ref`
 to a release tag, and change the tag to update:
@@ -37,7 +37,7 @@ dependencies:
   deepdots_popups:
     git:
       url: https://github.com/MagicFeedback/deepdots-popup-flutter-sdk.git
-      ref: v1.0.1
+      ref: v1.1.0
 ```
 
 ```bash
