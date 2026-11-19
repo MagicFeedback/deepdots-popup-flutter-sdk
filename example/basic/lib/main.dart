@@ -11,7 +11,7 @@ const publicKey = String.fromEnvironment(
 );
 
 /// Native SDK the plugin wraps; shown on the screen.
-const nativeSdkVersion = '0.7.11';
+const nativeSdkVersion = '0.7.13';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
