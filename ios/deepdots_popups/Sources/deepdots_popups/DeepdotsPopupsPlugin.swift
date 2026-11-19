@@ -10,6 +10,17 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
   // Lo que devuelve `provideLang`. El SDK nativo lo vuelve a leer cada vez que pinta un popup,
   // así que `setLanguage` lo cambia en caliente.
   private var language: String?
+  // Modo claro/oscuro (DD-243): lo que pidió Dart, también antes de init().
+  private var appearance: Appearance?
+
+  private func appearanceOf(_ name: String?) -> Appearance? {
+    switch name {
+    case "system": return Appearance.system
+    case "light": return Appearance.light
+    case "dark": return Appearance.dark
+    default: return nil
+    }
+  }
 
   init(channel: FlutterMethodChannel) {
     self.channel = channel
@@ -24,6 +35,12 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
     let args = call.arguments as? [String: Any] ?? [:]
     if call.method == "init" {
       initialize(args)
+      return result(nil)
+    }
+    if call.method == "setAppearance" {
+      // Antes de init() se guarda y se aplica al inicializar; después, al SDK.
+      appearance = appearanceOf(args["appearance"] as? String)
+      sdk?.setAppearance(appearance: appearance)
       return result(nil)
     }
     if call.method == "setLanguage" {
@@ -172,6 +189,10 @@ public class DeepdotsPopupsPlugin: NSObject, FlutterPlugin {
     )
     let instance = DeepdotsSDK.DeepdotsPopups()
     instance.initialize(options: options)
+    // Modo claro/oscuro (DD-243). Desde Swift el constructor sin `appearance` sigue siendo el
+    // que se usa (todos los parámetros a mano), así que se aplica justo después de inicializar.
+    if let requested = appearanceOf(args["appearance"] as? String) { appearance = requested }
+    if appearance != nil { instance.setAppearance(appearance: appearance) }
     for event in Event.entries {
       instance.on(event: event) { [weak self] data in self?.emit(event, data) }
     }

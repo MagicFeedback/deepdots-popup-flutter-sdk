@@ -3,7 +3,7 @@ require 'fileutils'
 
 # SDK nativo de Deepdots (KMP). Mismo zip y checksum que el paquete SPM
 # (MagicFeedback/DeepdotsSDK-SPM); la versión tiene que coincidir con la de Package.swift.
-DEEPDOTS_SDK_VERSION = '0.7.11'
+DEEPDOTS_SDK_VERSION = '0.7.13'
 DEEPDOTS_SDK_SHA256 = 'b5a4f2c92f99bc64888ed2f189a6f2cf9001e596a4d2e56fd2faf43f4f0d4e68'
 DEEPDOTS_SDK_URL = "https://github.com/MagicFeedback/DeepdotsSDK-SPM/releases/download/#{DEEPDOTS_SDK_VERSION}/DeepdotsSDK-#{DEEPDOTS_SDK_VERSION}.xcframework.zip"
 

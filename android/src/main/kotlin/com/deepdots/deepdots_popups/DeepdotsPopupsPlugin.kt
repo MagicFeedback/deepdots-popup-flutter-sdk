@@ -6,6 +6,7 @@ import android.os.Looper
 import com.deepdots.sdk.DeepdotsPopups
 import com.deepdots.sdk.SdkIdentity
 import com.deepdots.sdk.analytics.AnalyticsKeys
+import com.deepdots.sdk.models.Appearance
 import com.deepdots.sdk.models.Environment
 import com.deepdots.sdk.models.Event
 import com.deepdots.sdk.models.EventData
@@ -45,6 +46,15 @@ class DeepdotsPopupsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     // Lo que devuelve `provideLang`. El SDK nativo lo vuelve a leer cada vez que pinta un
     // popup, así que `setLanguage` lo cambia en caliente.
     @Volatile private var language: String? = null
+    // Modo claro/oscuro (DD-243): lo que pidió Dart, también antes de init().
+    @Volatile private var appearance: Appearance? = null
+
+    private fun appearanceOf(name: String?): Appearance? = when (name) {
+        "system" -> Appearance.System
+        "light" -> Appearance.Light
+        "dark" -> Appearance.Dark
+        else -> null
+    }
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(binding.binaryMessenger, CHANNEL)
@@ -59,6 +69,13 @@ class DeepdotsPopupsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     override fun onMethodCall(call: MethodCall, result: Result) {
         if (call.method == "init") {
             init(call)
+            result.success(null)
+            return
+        }
+        if (call.method == "setAppearance") {
+            // Antes de init() se guarda y va en InitOptions; después, al SDK.
+            appearance = appearanceOf(call.argument<String>("appearance"))
+            sdk?.setAppearance(appearance)
             result.success(null)
             return
         }
@@ -176,6 +193,7 @@ class DeepdotsPopupsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             metadata = buildMetadata(userId, call.argument<Map<String, Any?>>("metadata")),
             renderChrome = call.argument<Boolean>("renderChrome"),
             showProgressBar = call.argument<Boolean>("showProgressBar"),
+            appearance = appearanceOf(call.argument<String>("appearance")) ?: appearance,
             onFeedbackSession = { session -> emitFeedbackSession(session) },
         )
         val instance = DeepdotsPopups()
