@@ -14,6 +14,14 @@ import 'src/version.dart';
 
 enum DeepdotsEnvironment { production, development }
 
+/// Modo claro/oscuro del popup (DD-243, sobre el nativo DD-240).
+///
+/// - [system]: sigue al dispositivo.
+/// - [light] / [dark]: lo fuerza la app (p. ej. con su propio interruptor).
+///
+/// Sin valor (`null`) deciden los colores del Style del survey, como siempre.
+enum DeepdotsAppearance { system, light, dark }
+
 /// Evento del SDK nativo (`popup_shown`, `popup_clicked`, `survey_completed`).
 class DeepdotsEvent {
   const DeepdotsEvent({
@@ -93,6 +101,8 @@ class DeepdotsPopups {
   ///   [setContactAttributes].
   /// - [geolocation]: país/ciudad por IP en analytics (`false` no llama nunca a los servicios
   ///   de geolocalización).
+  /// - [appearance]: modo claro/oscuro (ver [DeepdotsAppearance]); `null` = deciden los colores
+  ///   del Style. Se cambia después con [setAppearance].
   static Future<void> init({
     required String publicKey,
     DeepdotsEnvironment environment = DeepdotsEnvironment.production,
@@ -107,6 +117,7 @@ class DeepdotsPopups {
     bool? renderChrome,
     bool? showProgressBar,
     Map<String, Object?>? metadata,
+    DeepdotsAppearance? appearance,
   }) async {
     _channel.setMethodCallHandler(_onNativeCall);
     await _channel.invokeMethod<void>('init', {
@@ -123,6 +134,7 @@ class DeepdotsPopups {
       'renderChrome': renderChrome,
       'showProgressBar': showProgressBar,
       'metadata': metadata,
+      'appearance': appearance?.name,
       // El nativo lo declara como wrapper: `deepdots_sdk=flutter@<versión>` en respuestas y
       // analítica, con el núcleo nativo en `deepdots_sdk_core`.
       'sdkName': 'flutter',
@@ -365,6 +377,12 @@ class DeepdotsPopups {
   /// Se puede llamar antes de [init]; un `language` no nulo en [init] lo sustituye.
   static Future<void> setLanguage(String? language) =>
       _channel.invokeMethod('setLanguage', {'language': language});
+
+  /// Cambia el modo claro/oscuro: se aplica al siguiente popup que se abra (con
+  /// [DeepdotsAppearance.system] el marco sigue al dispositivo también con el popup abierto).
+  /// `null` vuelve a los colores del Style. Funciona también antes de [init].
+  static Future<void> setAppearance(DeepdotsAppearance? appearance) =>
+      _channel.invokeMethod('setAppearance', {'appearance': appearance?.name});
 
   static Future<void> _onNativeCall(MethodCall call) async {
     if (call.method == 'onFeedbackSession') {

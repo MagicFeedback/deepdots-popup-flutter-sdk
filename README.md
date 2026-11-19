@@ -6,7 +6,7 @@ plugin exposes them to Dart and connects them to Flutter's navigation and app li
 
 | | |
 |---|---|
-| Native SDK | `0.7.11` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
+| Native SDK | `0.7.13` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
 | Flutter | 3.24 or later (Dart 3.5) |
 | Android | minSdk 24, compileSdk 36 (apps from Flutter 3.24–3.32 need a newer Android toolchain, see [INSTALL.md](INSTALL.md)) |
 | iOS | 13.0 or later (Swift Package Manager from Flutter 3.41; CocoaPods on all) |

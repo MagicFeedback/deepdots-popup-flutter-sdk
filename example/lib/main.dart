@@ -90,6 +90,8 @@ class SdkHost {
     userId: config.user.isEmpty ? null : config.user,
     language: config.lang,
     debug: true,
+    // DD-243: the popup follows the phone's light/dark mode (the survey Style's dark colours).
+    appearance: DeepdotsAppearance.system,
   );
 
   /// A host that calls init() again (e.g. from a second entry point): the SDK must ignore it.

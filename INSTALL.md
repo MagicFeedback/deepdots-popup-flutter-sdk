@@ -7,7 +7,7 @@ plugin exposes them to Dart and wires in Flutter's navigation and app lifecycle.
 | | |
 |---|---|
 | Plugin | `1.1.0` |
-| Native SDK | `0.7.11` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
+| Native SDK | `0.7.13` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
 | Flutter | 3.24 or later (Dart 3.5). Build checked on every stable release from 3.24 to 3.47 |
 | Android | minSdk 24, compileSdk 36; Android Gradle plugin 8.9.1, Gradle 8.11.1, Kotlin 2.1 or later |
 | iOS | 13.0 or later; Swift Package Manager needs Flutter 3.41 or later, CocoaPods works on all |

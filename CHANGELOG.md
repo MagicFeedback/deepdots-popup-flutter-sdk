@@ -1,3 +1,15 @@
+## 1.2.0
+
+* Native Deepdots SDK 0.7.13 (was 0.7.11). **Needs 0.7.13 published on Maven Central and
+  DeepdotsSDK-SPM first.**
+* Light and dark mode (DD-243, Danske Spil): `DeepdotsPopups.init(appearance: ...)` and
+  `DeepdotsPopups.setAppearance(...)` with `DeepdotsAppearance.system`, `light` or `dark`.
+  `system` follows the phone; `null` (default) keeps today's behaviour, where the survey Style
+  colours decide. In dark the popup uses the Style's dark colours (set in the Admin). Works
+  before `init()` too. The example app uses `system`.
+* From the native SDK: a survey Style with dark colours gets light text by itself (popup and
+  survey), no band above the survey and a readable thank-you on a dark card.
+
 ## 1.1.0
 
 * Native Deepdots SDK 0.7.11 (was 0.7.9; 0.7.10 was never published). Changes that reach
