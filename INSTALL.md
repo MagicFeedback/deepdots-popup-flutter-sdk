@@ -6,7 +6,7 @@ plugin exposes them to Dart and wires in Flutter's navigation and app lifecycle.
 
 | | |
 |---|---|
-| Plugin | `1.1.0` |
+| Plugin | `1.2.0` |
 | Native SDK | `0.7.13` (Android: Maven Central; iOS: Swift Package Manager or CocoaPods) |
 | Flutter | 3.24 or later (Dart 3.5). Build checked on every stable release from 3.24 to 3.47 |
 | Android | minSdk 24, compileSdk 36; Android Gradle plugin 8.9.1, Gradle 8.11.1, Kotlin 2.1 or later |
@@ -14,31 +14,17 @@ plugin exposes them to Dart and wires in Flutter's navigation and app lifecycle.
 
 ## 1. Add the dependency
 
-The plugin is on [pub.dev](https://pub.dev/packages/deepdots_popups):
-
-```bash
-flutter pub add deepdots_popups
-```
-
-or in `pubspec.yaml`:
-
-```yaml
-dependencies:
-  deepdots_popups: ^1.1.0
-```
-
-`^1.1.0` takes every 1.x release (fixes and new features) with `flutter pub upgrade`, never a 2.0.
-
-**Alternative: from git.** Apps that already install it from GitHub can keep doing so. Pin `ref`
-to a release tag, and change the tag to update:
+Install it from GitHub, pinned to a release tag. Change the tag to update:
 
 ```yaml
 dependencies:
   deepdots_popups:
     git:
       url: https://github.com/MagicFeedback/deepdots-popup-flutter-sdk.git
-      ref: v1.1.0
+      ref: v1.2.0
 ```
+
+pub.dev (`flutter pub add deepdots_popups`, `^1.2.0`) comes once the package is published there.
 
 ```bash
 flutter pub get

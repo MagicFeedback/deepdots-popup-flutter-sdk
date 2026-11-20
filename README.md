@@ -13,20 +13,14 @@ plugin exposes them to Dart and connects them to Flutter's navigation and app li
 
 ## Install
 
-```yaml
-# pubspec.yaml
-dependencies:
-  deepdots_popups: ^1.1.0
-```
-
-Or from git, pinned to a release tag:
+From git, pinned to a release tag:
 
 ```yaml
 dependencies:
   deepdots_popups:
     git:
       url: https://github.com/MagicFeedback/deepdots-popup-flutter-sdk.git
-      ref: v1.1.0
+      ref: v1.2.0
 ```
 
 On iOS, exclude the Intel simulator architecture (one line in two xcconfig files, or a few lines
